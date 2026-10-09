@@ -37,6 +37,21 @@ interface ContentContextType {
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
+// Safe helper to parse JSON or catch HTML server responses
+async function safeJson<T = any>(res: Response, endpoint: string): Promise<{ data: T | null; error?: string }> {
+  const text = await res.text();
+  try {
+    const data = JSON.parse(text);
+    return { data };
+  } catch {
+    console.error(`[API Error] Expected JSON from "${endpoint}", but got HTTP ${res.status}:`, text);
+    return {
+      data: null,
+      error: `Server route ${endpoint} returned HTTP ${res.status} (${text.slice(0, 80).trim()}...)`,
+    };
+  }
+}
+
 export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token, isAuthenticated } = useAuth();
   const [content, setContent] = useState<WebsiteContent>(initialWebsiteContent);
@@ -52,26 +67,30 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsLoading(true);
     try {
       if (isAuthenticated && token) {
-        // Fetch full admin data
         const res = await fetch('/api/admin/data', {
           headers: { Authorization: `Bearer ${token}` },
         });
+
         if (res.ok) {
-          const data = await res.json();
-          setContent(data.published || initialWebsiteContent);
-          setDraftContent(data.draft || null);
-          setEnquiries(data.enquiries || []);
-          setActivities(data.activities || []);
-          setIsLoading(false);
-          return;
+          const { data } = await safeJson(res, '/api/admin/data');
+          if (data) {
+            setContent(data.published || initialWebsiteContent);
+            setDraftContent(data.draft || null);
+            setEnquiries(data.enquiries || []);
+            setActivities(data.activities || []);
+            setIsLoading(false);
+            return;
+          }
         }
       }
 
       // Public content fallback
       const pubRes = await fetch('/api/content');
       if (pubRes.ok) {
-        const pubData = await pubRes.json();
-        setContent(pubData);
+        const { data: pubData } = await safeJson(pubRes, '/api/content');
+        if (pubData) {
+          setContent(pubData);
+        }
       }
     } catch (err) {
       console.warn('Using client fallback default data:', err);
@@ -97,8 +116,10 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         },
         body: JSON.stringify({ content: updated, isPublish: false }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to save draft');
+
+      const { data, error } = await safeJson(res, '/api/admin/save-content');
+      if (!res.ok || !data) throw new Error(data?.error || error || 'Failed to save draft');
+
       setDraftContent(updated);
       setSaveMessage('Draft saved successfully');
       setTimeout(() => setSaveMessage(null), 3000);
@@ -124,8 +145,10 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         },
         body: JSON.stringify({ content: updated, isPublish: true }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to publish changes');
+
+      const { data, error } = await safeJson(res, '/api/admin/save-content');
+      if (!res.ok || !data) throw new Error(data?.error || error || 'Failed to publish changes');
+
       setContent(updated);
       setDraftContent(null);
       setSaveMessage('Changes published live to website!');
@@ -176,9 +199,9 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         });
       }
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        return { success: false, error: data.error || 'Image upload failed' };
+      const { data, error } = await safeJson(res, '/api/admin/upload');
+      if (!res.ok || !data || !data.success) {
+        return { success: false, error: data?.error || error || 'Image upload failed' };
       }
 
       await refreshContent();
@@ -214,9 +237,10 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      const resData = await res.json();
-      if (!res.ok) {
-        return { success: false, error: resData.error || 'Submission failed' };
+
+      const { data: resData, error } = await safeJson(res, '/api/contact');
+      if (!res.ok || !resData) {
+        return { success: false, error: resData?.error || error || 'Submission failed' };
       }
       return { success: true, message: resData.message };
     } catch (err: any) {
@@ -272,12 +296,13 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
-      if (res.ok) {
+
+      const { data, error } = await safeJson(res, '/api/admin/reset-demo');
+      if (res.ok && data) {
         await refreshContent();
         return { success: true, message: data.message };
       }
-      return { success: false, message: data.error };
+      return { success: false, message: data?.error || error || 'Reset failed' };
     } catch (err: any) {
       return { success: false, message: err.message };
     }
