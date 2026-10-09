@@ -41,6 +41,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onOpenConsulta
                   alt={service.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
+                  referrerPolicy="no-referrer"
                 />
                 {service.startingPrice && (
                   <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded bg-stone-900/85 backdrop-blur-xs text-[11px] font-bold text-amber-400">
