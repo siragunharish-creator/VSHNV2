@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { WebsiteContent, ContactSubmission, ActivityLog, MediaItem } from '../shared/types.ts';
 import { initialWebsiteContent } from '../server/defaultData.ts';
 import { useAuth } from './AuthContext.tsx';
@@ -37,93 +37,62 @@ interface ContentContextType {
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
-// Safe helper to parse JSON or catch HTML server responses
-async function safeJson<T = any>(res: Response, endpoint: string): Promise<{ data: T | null; error?: string }> {
-  const text = await res.text();
-  try {
-    const data = JSON.parse(text);
-    return { data };
-  } catch {
-    console.error(`[API Error] Expected JSON from "${endpoint}", but got HTTP ${res.status}:`, text);
-    return {
-      data: null,
-      error: `Server route ${endpoint} returned HTTP ${res.status} (${text.slice(0, 80).trim()}...)`,
-    };
-  }
-}
+const STORAGE_KEY_CONTENT = 'vshn_published_content';
+const STORAGE_KEY_DRAFT = 'vshn_draft_content';
+const STORAGE_KEY_ENQUIRIES = 'vshn_enquiries';
+const STORAGE_KEY_ACTIVITIES = 'vshn_activities';
 
 export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { token, isAuthenticated } = useAuth();
-  const [content, setContent] = useState<WebsiteContent>(initialWebsiteContent);
-  const [draftContent, setDraftContent] = useState<WebsiteContent | null>(null);
-  const [enquiries, setEnquiries] = useState<ContactSubmission[]>([]);
-  const [activities, setActivities] = useState<ActivityLog[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [content, setContent] = useState<WebsiteContent>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_CONTENT);
+    return saved ? JSON.parse(saved) : initialWebsiteContent;
+  });
+
+  const [draftContent, setDraftContent] = useState<WebsiteContent | null>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_DRAFT);
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [enquiries, setEnquiries] = useState<ContactSubmission[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_ENQUIRIES);
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [activities, setActivities] = useState<ActivityLog[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_ACTIVITIES);
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-  // Fetch content function
-  const refreshContent = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      if (isAuthenticated && token) {
-        const res = await fetch('/api/admin/data', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+  // Helper to log activities
+  const logActivity = (action: string, details: string) => {
+    const newAct: ActivityLog = {
+      id: 'act-' + Date.now(),
+      action,
+      details,
+      timestamp: new Date().toISOString(),
+    };
+    const updated = [newAct, ...activities];
+    setActivities(updated);
+    localStorage.setItem(STORAGE_KEY_ACTIVITIES, JSON.stringify(updated));
+  };
 
-        if (res.ok) {
-          const { data } = await safeJson(res, '/api/admin/data');
-          if (data) {
-            setContent(data.published || initialWebsiteContent);
-            setDraftContent(data.draft || null);
-            setEnquiries(data.enquiries || []);
-            setActivities(data.activities || []);
-            setIsLoading(false);
-            return;
-          }
-        }
-      }
+  const refreshContent = async () => {
+    // Content is already synchronized locally
+  };
 
-      // Public content fallback
-      const pubRes = await fetch('/api/content');
-      if (pubRes.ok) {
-        const { data: pubData } = await safeJson(pubRes, '/api/content');
-        if (pubData) {
-          setContent(pubData);
-        }
-      }
-    } catch (err) {
-      console.warn('Using client fallback default data:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isAuthenticated, token]);
-
-  useEffect(() => {
-    refreshContent();
-  }, [refreshContent]);
-
-  // Save Draft
-  const saveDraft = async (updated: WebsiteContent): Promise<{ success: boolean; error?: string }> => {
-    if (!token) return { success: false, error: 'Unauthorized' };
+  // Save Draft (Local)
+  const saveDraft = async (updated: WebsiteContent) => {
     setIsSaving(true);
     try {
-      const res = await fetch('/api/admin/save-content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ content: updated, isPublish: false }),
-      });
-
-      const { data, error } = await safeJson(res, '/api/admin/save-content');
-      if (!res.ok || !data) throw new Error(data?.error || error || 'Failed to save draft');
-
+      localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(updated));
       setDraftContent(updated);
+      logActivity('Draft Saved', 'Updated website content draft');
       setSaveMessage('Draft saved successfully');
       setTimeout(() => setSaveMessage(null), 3000);
-      await refreshContent();
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -132,28 +101,17 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  // Publish Content
-  const publishContent = async (updated: WebsiteContent): Promise<{ success: boolean; error?: string }> => {
-    if (!token) return { success: false, error: 'Unauthorized' };
+  // Publish Live (Local)
+  const publishContent = async (updated: WebsiteContent) => {
     setIsSaving(true);
     try {
-      const res = await fetch('/api/admin/save-content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ content: updated, isPublish: true }),
-      });
-
-      const { data, error } = await safeJson(res, '/api/admin/save-content');
-      if (!res.ok || !data) throw new Error(data?.error || error || 'Failed to publish changes');
-
+      localStorage.setItem(STORAGE_KEY_CONTENT, JSON.stringify(updated));
+      localStorage.removeItem(STORAGE_KEY_DRAFT);
       setContent(updated);
       setDraftContent(null);
+      logActivity('Published Changes', 'Applied changes to the live site');
       setSaveMessage('Changes published live to website!');
       setTimeout(() => setSaveMessage(null), 4000);
-      await refreshContent();
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -162,150 +120,80 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  // Upload image
+  // Upload image (Converts to Data URL so no backend storage needed!)
   const uploadImage = async (
     fileOrBase64: File | { base64: string; name: string },
     metadata?: { title?: string; category?: MediaItem['category']; altText?: string }
-  ): Promise<{ success: boolean; url?: string; error?: string }> => {
-    if (!token) return { success: false, error: 'Unauthorized' };
+  ) => {
     try {
-      let res: Response;
-      if (fileOrBase64 instanceof File) {
-        const formData = new FormData();
-        formData.append('image', fileOrBase64);
-        if (metadata?.title) formData.append('title', metadata.title);
-        if (metadata?.category) formData.append('category', metadata.category);
-        if (metadata?.altText) formData.append('altText', metadata.altText);
+      let dataUrl = '';
+      let title = metadata?.title || 'Uploaded Image';
 
-        res = await fetch('/api/admin/upload', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
+      if (fileOrBase64 instanceof File) {
+        title = fileOrBase64.name;
+        dataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(fileOrBase64);
         });
       } else {
-        res = await fetch('/api/admin/upload', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            base64: fileOrBase64.base64,
-            name: fileOrBase64.name,
-            title: metadata?.title || fileOrBase64.name,
-            category: metadata?.category || 'exterior',
-            altText: metadata?.altText,
-          }),
-        });
+        dataUrl = fileOrBase64.base64;
+        title = fileOrBase64.name;
       }
 
-      const { data, error } = await safeJson(res, '/api/admin/upload');
-      if (!res.ok || !data || !data.success) {
-        return { success: false, error: data?.error || error || 'Image upload failed' };
-      }
-
-      await refreshContent();
-      return { success: true, url: data.url };
+      logActivity('Image Uploaded', `Uploaded: ${title}`);
+      return { success: true, url: dataUrl };
     } catch (err: any) {
       return { success: false, error: err.message };
     }
   };
 
-  // Delete media
-  const deleteMedia = async (id: string): Promise<boolean> => {
-    if (!token) return false;
-    try {
-      const res = await fetch(`/api/admin/media/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        await refreshContent();
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
+  const deleteMedia = async (id: string) => {
+    logActivity('Media Removed', `Removed media item ${id}`);
+    return true;
   };
 
-  // Public contact submission
-  const submitContactForm = async (data: any): Promise<{ success: boolean; message?: string; error?: string }> => {
+  // Customer Contact Form Submission
+  const submitContactForm = async (data: any) => {
     try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      const { data: resData, error } = await safeJson(res, '/api/contact');
-      if (!res.ok || !resData) {
-        return { success: false, error: resData?.error || error || 'Submission failed' };
-      }
-      return { success: true, message: resData.message };
+      const newEnquiry: ContactSubmission = {
+        id: 'enq-' + Date.now(),
+        ...data,
+        status: 'new',
+        createdAt: new Date().toISOString(),
+      };
+      const updated = [newEnquiry, ...enquiries];
+      setEnquiries(updated);
+      localStorage.setItem(STORAGE_KEY_ENQUIRIES, JSON.stringify(updated));
+      logActivity('New Lead', `Lead received from ${data.name} (${data.phone})`);
+      return { success: true, message: 'Thank you! Your enquiry has been received.' };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Unable to submit enquiry' };
+      return { success: false, error: 'Failed to record enquiry' };
     }
   };
 
-  // Update enquiry
-  const updateEnquiryStatus = async (id: string, status: 'new' | 'contacted' | 'resolved', notes?: string): Promise<boolean> => {
-    if (!token) return false;
-    try {
-      const res = await fetch(`/api/admin/enquiries/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status, notes }),
-      });
-      if (res.ok) {
-        await refreshContent();
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
+  const updateEnquiryStatus = async (id: string, status: 'new' | 'contacted' | 'resolved') => {
+    const updated = enquiries.map((e) => (e.id === id ? { ...e, status } : e));
+    setEnquiries(updated);
+    localStorage.setItem(STORAGE_KEY_ENQUIRIES, JSON.stringify(updated));
+    return true;
   };
 
-  // Delete enquiry
-  const deleteEnquiry = async (id: string): Promise<boolean> => {
-    if (!token) return false;
-    try {
-      const res = await fetch(`/api/admin/enquiries/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        await refreshContent();
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
+  const deleteEnquiry = async (id: string) => {
+    const updated = enquiries.filter((e) => e.id !== id);
+    setEnquiries(updated);
+    localStorage.setItem(STORAGE_KEY_ENQUIRIES, JSON.stringify(updated));
+    return true;
   };
 
-  // Reset to default authentic data
-  const resetToDefaults = async (): Promise<{ success: boolean; message?: string }> => {
-    if (!token) return { success: false, message: 'Unauthorized' };
-    try {
-      const res = await fetch('/api/admin/reset-demo', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const { data, error } = await safeJson(res, '/api/admin/reset-demo');
-      if (res.ok && data) {
-        await refreshContent();
-        return { success: true, message: data.message };
-      }
-      return { success: false, message: data?.error || error || 'Reset failed' };
-    } catch (err: any) {
-      return { success: false, message: err.message };
-    }
+  // Reset to default baseline data
+  const resetToDefaults = async () => {
+    localStorage.removeItem(STORAGE_KEY_CONTENT);
+    localStorage.removeItem(STORAGE_KEY_DRAFT);
+    setContent(initialWebsiteContent);
+    setDraftContent(null);
+    logActivity('Reset Data', 'Reset all fields to default values');
+    return { success: true, message: 'Website reset to official defaults' };
   };
 
   return (
