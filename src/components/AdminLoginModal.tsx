@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, User, Eye, EyeOff, Shield, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { X, Lock, User, Eye, EyeOff, Shield, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useContent } from '../context/ContentContext.tsx';
 import { VshnLogo } from './VshnLogo.tsx';
@@ -17,8 +17,8 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 }) => {
   const { login } = useAuth();
   const { content } = useContent();
-  const [username, setUsername] = useState('harish');
-  const [password, setPassword] = useState('vshn1996');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -39,12 +39,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
     } else {
       setErrorMsg(result.error || 'Authentication failed. Please verify credentials.');
     }
-  };
-
-  const handleFillDemo = () => {
-    setUsername('harish');
-    setPassword('vshn1996');
-    setErrorMsg(null);
   };
 
   return (
@@ -76,21 +70,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
           </p>
         </div>
 
-        {/* Demo Credentials Info Box */}
-        {/*<div className="p-3 mb-5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 flex items-center justify-between gap-2 text-xs">
-          <div>
-            <span className="font-bold text-amber-900 dark:text-amber-300 block">Initial Demo Access:</span>
-            <span className="text-amber-800 dark:text-amber-400 font-mono">User: <strong>harish</strong> · Pass: <strong>vshn1996</strong></span>
-          </div>
-          <button
-            type="button"
-            onClick={handleFillDemo}
-            className="px-2.5 py-1 text-[11px] font-bold rounded bg-amber-500 text-stone-950 hover:bg-amber-400 transition-colors shrink-0"
-          >
-            Auto Fill
-          </button>
-        </div>*/}
-
         {/* Error Alert */}
         {errorMsg && (
           <div className="p-3 mb-5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs flex items-center gap-2">
@@ -99,7 +78,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
           {/* Username */}
           <div>
             <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1.5">
@@ -114,7 +93,8 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Username (e.g. harish)"
+                autoComplete="off"
+                placeholder="Enter username or email"
                 className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 text-xs sm:text-sm focus:ring-2 focus:ring-amber-500 outline-none"
               />
             </div>
@@ -134,7 +114,8 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
+                autoComplete="new-password"
+                placeholder="Enter password"
                 className="w-full pl-9 pr-10 py-2.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 text-xs sm:text-sm focus:ring-2 focus:ring-amber-500 outline-none"
               />
               <button
