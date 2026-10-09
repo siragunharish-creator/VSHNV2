@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 240" fill="none" class="vshn-brand-logo">
+  <defs>
+    <!-- Roof Gradient -->
+    <linearGradient id="roofGrad1" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E63920" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#FDE047" />
+    </linearGradient>
+    <linearGradient id="roofGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#D94600" />
+      <stop offset="40%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#FEF08A" />
+    </linearGradient>
+
+    <!-- Key Golden Gradient -->
+    <linearGradient id="keyGrad" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#EF4444" />
+      <stop offset="25%" stop-color="#F97316" />
+      <stop offset="55%" stop-color="#FBBF24" />
+      <stop offset="85%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#DC2626" />
+    </linearGradient>
+
+    <!-- Navy Text Gradient / Depth -->
+    <linearGradient id="blueNavy" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A" />
+      <stop offset="100%" stop-color="#172554" />
+    </linearGradient>
+
+    <filter id="logoDropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <!-- BACKGROUND HOUSE 1 (LEFT SMALLER GABLE) -->
+  <path d="M 70 85 L 140 25 L 210 85 Z" fill="none" stroke="url(#roofGrad1)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Windows for House 1 -->
+  <rect x="105" y="55" width="10" height="10" fill="#EF4444" rx="1.5" />
+  <rect x="122" y="55" width="10" height="10" fill="#EF4444" rx="1.5" />
+  <rect x="105" y="70" width="10" height="10" fill="#EF4444" rx="1.5" />
+  <rect x="122" y="70" width="10" height="10" fill="#EF4444" rx="1.5" />
+
+  <!-- BACKGROUND HOUSE 2 (RIGHT LARGER GABLE) -->
+  <path d="M 155 85 L 255 12 L 400 85 Z" fill="none" stroke="url(#roofGrad2)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Windows for House 2 -->
+  <rect x="210" y="50" width="12" height="12" fill="#F97316" rx="2" />
+  <rect x="230" y="50" width="12" height="12" fill="#F97316" rx="2" />
+  <rect x="210" y="68" width="12" height="12" fill="#EF4444" rx="2" />
+  <rect x="230" y="68" width="12" height="12" fill="#EF4444" rx="2" />
+
+  <!-- VSHN TEXT (BOLD ARCHITECTURAL LAYER) -->
+  <!-- V -->
+  <path d="M 115 95 L 138 95 L 155 150 L 172 95 L 195 95 L 167 165 L 143 165 Z" fill="#1E3A8A" />
+  <!-- S -->
+  <path d="M 235 110 C 235 98 225 93 210 93 C 195 93 186 100 186 112 C 186 128 235 120 235 145 C 235 160 220 166 205 166 C 188 166 178 158 178 145 L 198 145 C 198 153 204 156 208 156 C 215 156 220 152 220 146 C 220 132 171 138 171 113 C 171 99 184 85 210 85 C 232 85 248 95 248 110 Z" fill="#1E3A8A" />
+  <!-- H -->
+  <path d="M 252 95 L 268 95 L 268 120 L 298 120 L 298 95 L 314 95 L 314 165 L 298 165 L 298 135 L 268 135 L 268 165 L 252 165 Z" fill="#1E3A8A" />
+  <!-- N -->
+  <path d="M 324 95 L 340 95 L 368 138 L 368 95 L 384 95 L 384 165 L 368 165 L 340 122 L 340 165 L 324 165 Z" fill="#1E3A8A" />
+
+  <!-- GOLDEN KEY (CROSSING HORIZONTALLY THROUGH VSHN) -->
+  <!-- Key Bow (Heart/Clover Shape on left) -->
+  <g filter="url(#logoDropShadow)">
+    <path d="M 68 130 C 68 114 48 102 34 116 C 22 128 22 142 34 154 C 48 168 68 156 68 140 Z" fill="none" stroke="url(#keyGrad)" stroke-width="8" stroke-linecap="round" />
+    <path d="M 22 135 C 16 130 16 140 22 135 Z" fill="url(#keyGrad)" />
+    <!-- Heart cleft -->
+    <path d="M 38 120 C 50 110 65 125 50 135 C 65 145 50 160 38 150 C 30 142 30 128 38 120 Z" fill="url(#keyGrad)" />
+    <circle cx="48" cy="135" r="5" fill="#FFF" />
+    
+    <!-- Key Shaft -->
+    <rect x="65" y="130" width="310" height="9" fill="url(#keyGrad)" rx="3" />
+    
+    <!-- Key Bits (Teeth on right side) -->
+    <rect x="345" y="139" width="10" height="15" fill="url(#keyGrad)" rx="1.5" />
+    <rect x="365" y="139" width="10" height="12" fill="url(#keyGrad)" rx="1.5" />
+    <rect x="385" y="139" width="9" height="17" fill="url(#keyGrad)" rx="1.5" />
+    <!-- Key tip arrow -->
+    <polygon points="375,134.5 405,134.5 395,128 408,134.5 395,141" fill="url(#keyGrad)" />
+  </g>
+
+  <!-- BUILDERS TEXT (SLAB SERIF WITH CONTRAST SHADOW) -->
+  <text x="250" y="205" text-anchor="middle" font-family="'Cinzel', 'Plus Jakarta Sans', serif, sans-serif" font-weight="800" font-size="34" letter-spacing="7" fill="#1E3A8A">
+    BUILDERS
+  </text>
+  <!-- Architectural baseline accent lines -->
+  <line x1="85" y1="216" x2="415" y2="216" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6" />
+</svg>

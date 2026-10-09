@@ -1,0 +1,27 @@
+[
+  {
+    "id": "enq-1791509875688",
+    "name": "A. Karthik",
+    "phone": "9841098765",
+    "plotLocation": "Anna Nagar, Chennai",
+    "serviceNeeded": "Complete residential construction",
+    "estimatedSqFt": 2800,
+    "preferredPackage": "Premium",
+    "message": "Testing consultation submission",
+    "status": "new",
+    "createdAt": "2026-10-09T01:37:55.688Z"
+  },
+  {
+    "id": "enq-sample-1",
+    "name": "K. Venkatesan",
+    "phone": "98401 23456",
+    "email": "venkat.k@gmail.com",
+    "plotLocation": "Kolathur, Chennai",
+    "serviceNeeded": "Complete residential construction",
+    "estimatedSqFt": 2400,
+    "preferredPackage": "Deluxe",
+    "message": "Looking to construct a G+1 independent house on a 30x40 site. Need 2D plan and estimate.",
+    "status": "new",
+    "createdAt": "2026-10-08T20:37:31.883Z"
+  }
+]

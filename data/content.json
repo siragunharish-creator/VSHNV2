@@ -1,0 +1,667 @@
+{
+  "settings": {
+    "companyName": "VSHN BUILDERS",
+    "tagline": "Building Dreams. Creating Trust.",
+    "supportingTagline": "YOUR DREAM HOME. OUR RESPONSIBILITY.",
+    "phone": "70925 07374",
+    "whatsapp": "7092507374",
+    "email": "vshnbuilders@gmail.com",
+    "address": "Near New Washermenpet Metro, Tondiarpet Depot, Chennai, Tamil Nadu - 600081",
+    "googleMapsUrl": "https://www.google.com/maps/dir/?api=1&destination=VSHN+Builders,+AA+Garden,+42%2F60,+Ottravadai+St,+Press+Colony,+Tondiarpet,+Chennai,+Tamil+Nadu+600081",
+    "googleMapsEmbed": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3885.679165706915!2d80.2863!3d13.1197!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a526f6345ec46f1%3A0x6b4ef8d16723b7e4!2sVSHN%20Builders!5e0!3m2!1sen!2sin!4v1700000000000",
+    "experienceYears": 12,
+    "foundersExperienceYears": 20,
+    "completedProjectsCount": 85,
+    "ongoingProjectsCount": 14,
+    "happyClientsCount": 98,
+    "sqFtConstructed": "2.4 Lakhs+",
+    "logoUrl": "/vshn-logo.svg",
+    "socials": {
+      "instagram": "https://www.instagram.com/vshn_builders/",
+      "youtube": "https://www.youtube.com/@vshnbuilders",
+      "threads": "https://www.threads.net/@vshn_builders"
+    },
+    "businessHours": "Monday – Saturday: 9:00 AM – 7:30 PM | Sunday: By Prior Appointment",
+    "hero": {
+      "headline": "Your Dream Home. Our Responsibility.",
+      "subheading": "From thoughtful planning and architectural design to complete home construction, VSHN Builders helps turn your vision into a home built with care, quality, and trust.",
+      "primaryCtaText": "Get Free Consultation",
+      "primaryCtaLink": "#contact",
+      "secondaryCtaText": "Explore Our Projects",
+      "secondaryCtaLink": "#projects",
+      "backgroundImage": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2000&auto=format&fit=crop"
+    },
+    "aboutSection": {
+      "introHeading": "Crafting Generational Homes with Integrity & Architectural Precision",
+      "introParagraph": "At VSHN Builders, we believe a home is more than walls and a roof—it is a sacred sanctuary where your family’s memories take root. With 12 years in active building construction and more than 20 years of combined founders’ engineering expertise, we bring deep local Chennai knowledge, uncompromised structural rigor, and clear transparent costing to every project.",
+      "story": "Founded in Chennai, VSHN Builders was established to bridge the gap between architectural elegance and trustworthy construction practices. Starting with North Chennai and expanding rapidly across Chennai metropolitan and Tamil Nadu districts, our team of seasoned civil engineers, architects, and master craftsmen has delivered over 85 turnkey residential projects on time and within budget.",
+      "founderName": "Harish & Founding Team",
+      "founderTitle": "Founders & Principal Civil Engineers",
+      "founderMessage": "Our name V-S-H-N represents our founding pledge to you: Value for money in every specification, complete Satisfaction of our customers, Hope for every family to own a pristine custom home, and on-time Delivery without compromise.",
+      "founderExperience": "20+ Years Combined Structural & Turnkey Execution Experience",
+      "mission": "To deliver high-performance, architecturally superior, and structurally resilient homes that exceed client expectations through transparent execution, certified materials, and punctual milestone delivery.",
+      "vision": "To be the most respected and trusted residential builder and architectural design studio in Chennai and across Tamil Nadu.",
+      "image": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=1600&auto=format&fit=crop"
+    },
+    "brandValues": [
+      {
+        "letter": "V",
+        "title": "Value for Money",
+        "description": "Every rupee you invest is accounted for with detailed itemized bills, premium brand materials, and zero hidden escalation costs."
+      },
+      {
+        "letter": "S",
+        "title": "Satisfaction of Customer",
+        "description": "Our customer-first ethos means daily WhatsApp milestone updates, structural warranties, and a dedicated site engineer for your home."
+      },
+      {
+        "letter": "H",
+        "title": "Hope",
+        "description": "We believe every family deserves their dream home. We tailor structural designs to suit your plot dimensions, budget, and family aspirations."
+      },
+      {
+        "letter": "N",
+        "title": "On-Time Delivery",
+        "description": "Time is your most precious asset. We sign milestone-driven commitments with strict delivery schedules and punctual key handover."
+      }
+    ],
+    "sectionVisibility": {
+      "hero": true,
+      "stats": true,
+      "brandValues": true,
+      "services": true,
+      "calculator": true,
+      "projects": true,
+      "packages": true,
+      "process": true,
+      "testimonials": true,
+      "faq": true,
+      "contact": true
+    }
+  },
+  "projects": [
+    {
+      "id": "proj-1",
+      "title": "The Tondiarpet Heritage Contemporary Residence",
+      "slug": "tondiarpet-heritage-contemporary",
+      "location": "Near New Washermenpet Metro, Tondiarpet",
+      "city": "Chennai",
+      "category": "Residential Villa",
+      "status": "Completed",
+      "propertyType": "Independent G+2 Villa",
+      "builtUpArea": 2850,
+      "floors": "G+2",
+      "completionYear": 2025,
+      "coverImage": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1600&auto=format&fit=crop",
+      "galleryImages": [
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1600&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?q=80&w=1600&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=1600&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?q=80&w=1600&auto=format&fit=crop"
+      ],
+      "floorPlanImages": [
+        "https://images.unsplash.com/photo-1600585152220-90363fe7e115?q=80&w=1600&auto=format&fit=crop"
+      ],
+      "threeDDesignImages": [
+        "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=1600&auto=format&fit=crop"
+      ],
+      "description": "A striking blend of warm Tamil Nadu courtyard concepts and clean modern architectural lines. Built on a 30x40 plot with double-height central living, bespoke teak woodwork, and a panoramic terrace garden.",
+      "keyFeatures": [
+        "Vaastu-compliant layout with optimized cross-ventilation",
+        "Double-height foyer with Italian vitrified floor finishes",
+        "Bespoke teakwood entrance portal with brass accents",
+        "Solar net metering and 5,000L rainwater harvesting sump"
+      ],
+      "packageUsed": "Premium",
+      "isFeatured": true,
+      "isPublished": true,
+      "isDemo": true,
+      "createdAt": "2025-01-10T10:00:00.000Z",
+      "updatedAt": "2025-02-15T10:00:00.000Z"
+    },
+    {
+      "id": "proj-2",
+      "title": "Anna Nagar Luxury Modern Villa",
+      "slug": "anna-nagar-luxury-villa",
+      "location": "Anna Nagar West",
+      "city": "Chennai",
+      "category": "Residential Villa",
+      "status": "Completed",
+      "propertyType": "Turnkey Luxury Villa",
+      "builtUpArea": 3600,
+      "floors": "G+2",
+      "completionYear": 2024,
+      "coverImage": "https://images.unsplash.com/photo-1613490493576-7fde63acd811?q=80&w=1600&auto=format&fit=crop",
+      "galleryImages": [
+        "https://images.unsplash.com/photo-1613490493576-7fde63acd811?q=80&w=1600&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=80&w=1600&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?q=80&w=1600&auto=format&fit=crop"
+      ],
+      "floorPlanImages": [],
+      "threeDDesignImages": [
+        "https://images.unsplash.com/photo-1600585154526-990dced4db0d?q=80&w=1600&auto=format&fit=crop"
+      ],
+      "description": "An expansive modern residential villa featuring floating staircase architecture, concealed smart lighting, private elevator shaft, and an ultra-chic exterior louver facade.",
+      "keyFeatures": [
+        "Tata Tiscon 550D reinforced earthquake-resistant frame",
+        "Grohe & Kohler concealed thermostatic plumbing",
+        "German acoustic UPVC soundproof glazed windows",
+        "Energy-efficient inverter VRV air conditioning conduits"
+      ],
+      "packageUsed": "Premium",
+      "isFeatured": true,
+      "isPublished": true,
+      "isDemo": true,
+      "createdAt": "2024-04-12T10:00:00.000Z",
+      "updatedAt": "2024-11-20T10:00:00.000Z"
+    },
+    {
+      "id": "proj-3",
+      "title": "ECR Sea Breeze Tropical Duplex",
+      "slug": "ecr-sea-breeze-duplex",
+      "location": "East Coast Road (ECR)",
+      "city": "Chennai",
+      "category": "Duplex",
+      "status": "Completed",
+      "propertyType": "Beachside Modern Duplex",
+      "builtUpArea": 3200,
+      "floors": "G+1",
+      "completionYear": 2024,
+      "coverImage": "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=1600&auto=format&fit=crop",
+      "galleryImages": [
+        "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=1600&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1600566752355-35792bedcfea?q=80&w=1600&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1600585154526-990dced4db0d?q=80&w=1600&auto=format&fit=crop"
+      ],
+      "description": "Engineered specifically for coastal marine conditions with anti-saline concrete additives, powder-coated marine-grade aluminum pergolas, and wide shaded verandahs.",
+      "keyFeatures": [
+        "Anti-efflorescence waterproof base treatment",
+        "Open-plan entertainment kitchen with island",
+        "Expansive 600 sq.ft sea-view party deck",
+        "Automated perimeter lighting & biometric entry"
+      ],
+      "packageUsed": "Deluxe",
+      "isFeatured": true,
+      "isPublished": true,
+      "isDemo": true,
+      "createdAt": "2024-06-01T10:00:00.000Z",
+      "updatedAt": "2024-12-10T10:00:00.000Z"
+    },
+    {
+      "id": "proj-4",
+      "title": "Velachery Urban Smart Independent House",
+      "slug": "velachery-urban-smart-home",
+      "location": "Vijayanagar, Velachery",
+      "city": "Chennai",
+      "category": "Independent House",
+      "status": "Completed",
+      "propertyType": "Independent G+1 House",
+      "builtUpArea": 1950,
+      "floors": "G+1",
+      "completionYear": 2025,
+      "coverImage": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=1600&auto=format&fit=crop",
+      "galleryImages": [
+        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=1600&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1600585152220-90363fe7e115?q=80&w=1600&auto=format&fit=crop"
+      ],
+      "description": "Optimized for tight urban plot dimensions with maximum daylight penetration, dedicated stilt car parking, and low-maintenance exterior textured finishes.",
+      "keyFeatures": [
+        "Zero dead-space architectural floor planning",
+        "Heavy-duty vitrified flooring and granite steps",
+        "Legrand modular switchgear and Finolex cabling",
+        "Modular kitchen with quartz stone countertop"
+      ],
+      "packageUsed": "Deluxe",
+      "isFeatured": false,
+      "isPublished": true,
+      "isDemo": true,
+      "createdAt": "2024-09-15T10:00:00.000Z",
+      "updatedAt": "2025-01-20T10:00:00.000Z"
+    },
+    {
+      "id": "proj-5",
+      "title": "Mogappair Traditional-Modern Fusion Villa",
+      "slug": "mogappair-fusion-villa",
+      "location": "Mogappair West Extension",
+      "city": "Chennai",
+      "category": "Residential Villa",
+      "status": "Ongoing",
+      "propertyType": "Residential Villa G+2",
+      "builtUpArea": 2600,
+      "floors": "G+2",
+      "completionYear": 2026,
+      "coverImage": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1600&auto=format&fit=crop",
+      "galleryImages": [
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1600&auto=format&fit=crop"
+      ],
+      "description": "Currently in the finishing stage. Showcasing traditional terracotta roof elements combined with modern grey concrete finishes and energy-efficient LED cove ceilings.",
+      "keyFeatures": [
+        "Structural columns designed for future expansion",
+        "Dedicated pooja room with hand-carved teak woodwork",
+        "Advanced acoustic insulation between floor levels",
+        "Pressure-tested CPVC plumbing conduits"
+      ],
+      "packageUsed": "Deluxe",
+      "isFeatured": false,
+      "isPublished": true,
+      "isDemo": true,
+      "createdAt": "2025-02-01T10:00:00.000Z",
+      "updatedAt": "2025-02-28T10:00:00.000Z"
+    }
+  ],
+  "services": [
+    {
+      "id": "serv-1",
+      "title": "Complete Residential Construction",
+      "slug": "complete-residential-construction",
+      "shortDescription": "Turnkey home construction from foundation to final paint with guaranteed on-time handover.",
+      "fullDescription": "Our hallmark turnkey service takes complete ownership of your dream home. From soil testing, structural drawing approval, foundation laying, brick masonry, plumbing, electrical, to premium woodwork and handovers. We provide a single point of accountability with regular milestone reporting.",
+      "coverImage": "https://images.unsplash.com/photo-1541888946425-d0fbb186156f?q=80&w=1200&auto=format&fit=crop",
+      "startingPrice": "₹2,250 / sq. ft.",
+      "benefits": [
+        "100% Turnkey Execution: No vendor coordination headaches",
+        "Certified Branded Materials: Ultratech / Dalmia, Tata Tiscon",
+        "Daily Site Photo Updates via WhatsApp",
+        "10-Year Structural Guarantee & Termite Protection"
+      ],
+      "deliverables": [
+        "Full structural engineering drawings & soil report",
+        "Turnkey RCC framing, masonry, plastering",
+        "Premium flooring, sanitaryware, and electricals",
+        "Keys handover with clean completion certificate"
+      ],
+      "isPublished": true,
+      "order": 1
+    },
+    {
+      "id": "serv-2",
+      "title": "Home Renovation and Remodeling",
+      "slug": "home-renovation-remodeling",
+      "shortDescription": "Transform your existing house into a contemporary luxury space with structural reinforcement.",
+      "fullDescription": "Breathe brand-new life into older Chennai homes. Whether you need floor additions (vertical expansion), room reconfiguration, modern bathroom upgrades, kitchen remodeling, or facade modernization, our civil engineers ensure flawless structural safety and modern finishes.",
+      "coverImage": "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=1200&auto=format&fit=crop",
+      "startingPrice": "Customized Quote",
+      "benefits": [
+        "Structural integrity audit prior to remodeling",
+        "Demolition debris removal & zero-damage dust barriers",
+        "Modern waterproofing for terrace and sunken slabs",
+        "Significant property valuation enhancement"
+      ],
+      "deliverables": [
+        "As-built assessment and retrofit blueprint",
+        "Masonry restructuring and modern tiling",
+        "Concealed plumbing and wiring revamps",
+        "Exterior modern elevation refresh"
+      ],
+      "isPublished": true,
+      "order": 2
+    },
+    {
+      "id": "serv-3",
+      "title": "2D Floor Plans and Architectural Drawings",
+      "slug": "2d-floor-plans-architectural-drawings",
+      "shortDescription": "Precise, Vaastu-aligned, municipality-compliant architectural and structural drawings.",
+      "fullDescription": "Smart construction starts on paper. Our licensed architects design highly functional 2D floor plans that optimize every square inch of your plot size. Includes structural column layout, beam schedules, electrical conduit routing, and plumbing diagrams aligned with CMDA / Chennai Corporation guidelines.",
+      "coverImage": "https://images.unsplash.com/photo-1600585152220-90363fe7e115?q=80&w=1200&auto=format&fit=crop",
+      "startingPrice": "₹15 / sq. ft.",
+      "benefits": [
+        "100% Vaastu Shastra compliance based on orientation",
+        "Maximum natural lighting and natural ventilation airflow",
+        "Chennai Corporation & CMDA approval ready",
+        "Elimination of dead spaces and awkward corridors"
+      ],
+      "deliverables": [
+        "Detailed dimensioned floor plans for each level",
+        "Column & footing layout with structural schedules",
+        "Plumbing and electrical conduit schematics",
+        "Cross-sectional elevation blueprints"
+      ],
+      "isPublished": true,
+      "order": 3
+    },
+    {
+      "id": "serv-4",
+      "title": "3D House Design and Visualization",
+      "slug": "3d-house-design-visualization",
+      "shortDescription": "Photorealistic 3D exterior elevations, walkthroughs, and interior renderings before pouring concrete.",
+      "fullDescription": "Visualize your future home with crystal clarity. We generate ultra-realistic 3D elevations and interior renderings showing exact material textures, lighting schemes, paint palettes, and landscaping. Experience your house virtually so you can fine-tune aesthetic choices with complete confidence.",
+      "coverImage": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=1200&auto=format&fit=crop",
+      "startingPrice": "₹8,000 / View",
+      "benefits": [
+        "See your exterior elevation before buying bricks",
+        "Evaluate multiple color themes and stone claddings",
+        "Interior daylight simulations and cove light previews",
+        "High-resolution presentation renders for the whole family"
+      ],
+      "deliverables": [
+        "High-resolution exterior front and corner 3D renders",
+        "Living, kitchen, and master bedroom 3D renders",
+        "Material and paint shade reference code list",
+        "Optional 360-degree virtual walkthrough"
+      ],
+      "isPublished": true,
+      "order": 4
+    },
+    {
+      "id": "serv-5",
+      "title": "Building Planning and Construction Consultation",
+      "slug": "planning-construction-consultation",
+      "shortDescription": "Expert civil engineering guidance on soil testing, permits, budget planning, and site supervision.",
+      "fullDescription": "Confused about soil bearing capacity, foundation types, setback regulations, or material quality? Consult directly with VSHN Builders’ senior civil engineers. We provide objective guidance on cost estimation, contractor audits, government approvals, and structural health checks.",
+      "coverImage": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1200&auto=format&fit=crop",
+      "startingPrice": "Free 1st Session",
+      "benefits": [
+        "Direct consultation with 20+ years experienced founders",
+        "Accurate budget estimation with contingency analysis",
+        "Soil and water suitability report review",
+        "Advice on setback rules and FSI optimization"
+      ],
+      "deliverables": [
+        "Comprehensive construction feasibility report",
+        "Itemized bill of quantities (BOQ) review",
+        "Soil test recommendations and foundation type advice",
+        "Milestone payment plan schedule"
+      ],
+      "isPublished": true,
+      "order": 5
+    },
+    {
+      "id": "serv-6",
+      "title": "Customized Home Construction Packages",
+      "slug": "customized-construction-packages",
+      "shortDescription": "Tailored construction plans designed around your family’s unique budget, aesthetics, and lifestyle.",
+      "fullDescription": "Every homeowner has distinct priorities. If you prefer high-end Italian flooring in the living room but standard tiles in utility areas, or smart home automation throughout, we curate flexible, custom construction packages where you choose the exact brand and grade of every fitting.",
+      "coverImage": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1200&auto=format&fit=crop",
+      "startingPrice": "Customized",
+      "benefits": [
+        "Freedom to pick individual tile, bath, and electrical brands",
+        "No rigid package locks; adjust specifications on demand",
+        "Itemized cost additions and deductions with complete transparency",
+        "Smart-home and solar-ready infrastructure customization"
+      ],
+      "deliverables": [
+        "Customized specifications contract",
+        "Dedicated procurement manager assistance",
+        "Material sample approval sessions before ordering",
+        "Handover warranty tailored to custom fittings"
+      ],
+      "isPublished": true,
+      "order": 6
+    }
+  ],
+  "packages": [
+    {
+      "id": "pkg-super",
+      "name": "Super",
+      "ratePerSqFt": 2250,
+      "badge": "High Value",
+      "tagline": "Quality residential construction optimized for smart budgets without structural compromise.",
+      "description": "Ideal for independent homes and rental residential floors where dependable durability, quality brands, and strict budget adherence are paramount.",
+      "isPopular": false,
+      "isPublished": true,
+      "includedHighlights": [
+        "Fe 550 Grade TMT Steel (Meenakshi / ARS / iSteel)",
+        "Grade 53/43 Cement (Dalmia / Chettinad / Ultratech)",
+        "Vitrified Floor Tiles (₹50/sq.ft allowance)",
+        "Parryware / Cera Sanitary & CP Fittings",
+        "Teak Wood Main Door Frame with Flush Shutter",
+        "Finolex / Polycab Flame-Retardant Wiring",
+        "Anchor Roma Modular Switches",
+        "Asian Paints Tractor Interior & Ace Exterior Emulsion"
+      ],
+      "specifications": [
+        {
+          "category": "Structure & Foundation",
+          "details": "Fe 550 TMT Steel, Ultratech/Dalmia Cement, Red chamber bricks or solid concrete blocks, 9\" exterior walls, 4.5\" partition walls."
+        },
+        {
+          "category": "Flooring & Tiling",
+          "details": "2x2 Vitrified tiles worth ₹50/sq.ft for living, dining, and bedrooms. Anti-skid ceramic tiles for bathrooms and balconies."
+        },
+        {
+          "category": "Kitchen",
+          "details": "Polished Black Granite platform 20mm, Stainless Steel single bowl sink, ceramic wall tiles up to 2 feet above platform."
+        },
+        {
+          "category": "Bathroom & Plumbing",
+          "details": "Wall tiles up to 7 feet height (₹40/sq.ft). CPVC & PVC pipes (Ashirvad / Supreme). Parryware / Cera EWC and wall-mounted wash basins."
+        },
+        {
+          "category": "Doors & Windows",
+          "details": "First quality Teak wood main door frame with flush shutter. UPVC 2-track sliding windows with clear glass and safety MS grills."
+        },
+        {
+          "category": "Electrical",
+          "details": "Concealed copper wiring with Finolex / Polycab. Anchor Roma / GM modular switches. Inverter backup wiring provision."
+        },
+        {
+          "category": "Painting",
+          "details": "JK Wall putty 2 coats, Asian Paints Tractor Emulsion interior, Ace weather shield exterior."
+        }
+      ]
+    },
+    {
+      "id": "pkg-deluxe",
+      "name": "Deluxe",
+      "ratePerSqFt": 2450,
+      "badge": "Most Popular",
+      "tagline": "Premium branded materials, contemporary finishes, and refined architectural aesthetics.",
+      "description": "Our most sought-after package for modern Chennai families wanting elevated comfort, branded fixtures, and lasting luxury.",
+      "isPopular": true,
+      "isPublished": true,
+      "includedHighlights": [
+        "Tata Tiscon / JSW Neosteel 550D TMT Steel",
+        "Ultratech / Ramco Super Grade 53 Cement",
+        "Large-format Vitrified Tiles (₹75/sq.ft allowance)",
+        "Jaquar / Kohler Bathroom Sanityware & CP Fittings",
+        "Carved Teak Wood Main Door with Brass Hardware",
+        "UPVC 3-Track Windows with Mosquito Mesh",
+        "Havells / Legrand Modular Electricals",
+        "Asian Paints Royale Luxury Interior & Apex Ultima Exterior",
+        "Full Sunken Slab & Terrace Waterproofing (Dr. Fixit)"
+      ],
+      "specifications": [
+        {
+          "category": "Structure & Foundation",
+          "details": "Tata Tiscon / JSW Neosteel 550D TMT Steel, Ultratech Cement, 1st Class table-moulded red chamber bricks, RCC M20/M25 design mix concrete."
+        },
+        {
+          "category": "Flooring & Tiling",
+          "details": "Large 4x2 Vitrified glazed tiles worth ₹75/sq.ft for living & bedrooms. Anti-skid designer tiles for bathrooms (₹60/sq.ft). Granite steps for staircase."
+        },
+        {
+          "category": "Kitchen",
+          "details": "Premium Black Galaxy Granite counter, Nirali double-bowl sink, designer dado tiles up to 3 feet, electric chimney duct & RO water provisions."
+        },
+        {
+          "category": "Bathroom & Plumbing",
+          "details": "Jaquar / Kohler CP fittings, wall-hung EWC with concealed cisterns, tiles up to 8 feet height. Hot/cold diverter in all master bathrooms."
+        },
+        {
+          "category": "Doors & Windows",
+          "details": "Pure First-Quality Teak wood carved main entrance door. Teak frames for internal bedrooms with laminated flush shutters. UPVC 3-track sliding with mosquito mesh."
+        },
+        {
+          "category": "Electrical",
+          "details": "Finolex / Havells FR-LSH copper wiring, Legrand Mylinc / Havells modular switches. Dedicated AC points in all bedrooms and living hall."
+        },
+        {
+          "category": "Painting & Finishing",
+          "details": "Birla White Putty 2 coats, Asian Paints Royale Luxury interior, Apex Ultima weatherproof exterior, Melamine polish for main wood."
+        }
+      ]
+    },
+    {
+      "id": "pkg-premium",
+      "name": "Premium",
+      "ratePerSqFt": 2650,
+      "badge": "Luxury Architectural",
+      "tagline": "Ultra-luxurious finishes, smart home provisions, and custom architectural elevation design.",
+      "description": "Designed for bespoke luxury residences and villas. Includes imported fittings, custom elevation accents, high-durability coatings, and smart infrastructure.",
+      "isPopular": false,
+      "isPublished": true,
+      "includedHighlights": [
+        "Tata Tiscon 550D Fe-grade certified TMT Steel",
+        "Ultratech Super Cement with micro-silica durability",
+        "Italian Composite Marble / Vitrified ₹120/sq.ft Tiles",
+        "Grohe / Kohler / Toto Concealed Wall-Hung Fixtures",
+        "Bespoke Teak Main Door with Digital Biometric Lock",
+        "German System High-End UPVC / Aluminum Glazing",
+        "Schneider / Legrand Smart-Home Automation Ready Conduits",
+        "Architectural Exterior Facade Cladding & Louvers",
+        "Solar Water Heater & 10,000L Rainwater Harvesting System"
+      ],
+      "specifications": [
+        {
+          "category": "Structure & Foundation",
+          "details": "Tata Tiscon 550D, Ultratech Super Cement, certified red wire-cut bricks, anti-termite treatment foundation barrier, seismic zone compliance."
+        },
+        {
+          "category": "Flooring & Tiling",
+          "details": "Composite Italian marble or ultra-premium 5x2.5 Vitrified tiles worth ₹120/sq.ft in foyer and living. Wooden textured tiles in master bedroom. Granite/Marble staircase."
+        },
+        {
+          "category": "Kitchen",
+          "details": "Quartz / Imported Granite countertop, premium Carysil quartz sink, full modular hardware provisions, tiles up to lintel level."
+        },
+        {
+          "category": "Bathroom & Plumbing",
+          "details": "Grohe / Toto / Kohler thermostatic concealed diverters, frameless glass shower enclosure partitions, wall tiles up to ceiling (₹90/sq.ft)."
+        },
+        {
+          "category": "Doors & Windows",
+          "details": "Burma / African Teak wood carved entrance door with Yale / Godrej biometric smart card lock. Heavy duty German UPVC windows with toughened glass."
+        },
+        {
+          "category": "Electrical & Automation",
+          "details": "Schneider Electric / Legrand Arteor smart modular switches, complete automation conduit readiness, EV charger provision in parking."
+        },
+        {
+          "category": "Elevation & Aesthetics",
+          "details": "Custom 3D architectural facade with exterior stone cladding, wooden louvers, warm exterior profile LED lighting, texture paint finish."
+        }
+      ]
+    }
+  ],
+  "testimonials": [
+    {
+      "id": "test-1",
+      "clientName": "S. K. Ramanathan & Family",
+      "location": "Tondiarpet, Chennai",
+      "projectTitle": "Independent G+2 Villa Construction",
+      "review": "Building a home in North Chennai was a lifelong dream for us. VSHN Builders delivered our house in exactly 10 months as promised. Their transparency in material brands—using genuine Tata Tiscon steel and Ultratech cement—gave us total confidence. Every evening we received photos of the site progress. Highly recommended!",
+      "rating": 5,
+      "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop",
+      "isPublished": true,
+      "isDemo": true,
+      "date": "January 2025"
+    },
+    {
+      "id": "test-2",
+      "clientName": "Dr. Priya & Murali Krishna",
+      "location": "Anna Nagar, Chennai",
+      "projectTitle": "Turnkey Luxury Villa",
+      "review": "We opted for their Premium Package for our Anna Nagar villa. The attention to detail in the 3D elevation, teakwood work, and concealed plumbing is extraordinary. The founders themselves visited the site weekly to supervise the structural curing and concrete pours. Exceptional engineering standards!",
+      "rating": 5,
+      "avatarUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&auto=format&fit=crop",
+      "isPublished": true,
+      "isDemo": true,
+      "date": "November 2024"
+    },
+    {
+      "id": "test-3",
+      "clientName": "Anand Venkatesh",
+      "location": "Velachery, Chennai",
+      "projectTitle": "G+1 Modern Duplex House",
+      "review": "What sets VSHN Builders apart is their tagline: YOUR DREAM HOME. OUR RESPONSIBILITY. They literally took care of everything from plan approval to the final coat of paint. There were zero hidden charges and no surprise escalations. Harish and his team are true professionals.",
+      "rating": 5,
+      "avatarUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop",
+      "isPublished": true,
+      "isDemo": true,
+      "date": "December 2024"
+    }
+  ],
+  "mediaLibrary": [
+    {
+      "id": "med-1791510333443",
+      "url": "/uploads/Gemini_Generated_Image_sv9qdus-1791510333425-451.png",
+      "title": "Gemini_Generated_Image_sv9qdusv9qdusv9q.png",
+      "altText": "Gemini_Generated_Image_sv9qdusv9qdusv9q.png",
+      "category": "branding",
+      "sizeBytes": 1321641,
+      "uploadedAt": "2026-10-09T01:45:33.443Z"
+    },
+    {
+      "id": "med-1",
+      "url": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1600&auto=format&fit=crop",
+      "title": "Modern Villa Front Elevation",
+      "altText": "Contemporary residential villa in Chennai with warm lighting",
+      "category": "exterior",
+      "uploadedAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "med-2",
+      "url": "https://images.unsplash.com/photo-1613490493576-7fde63acd811?q=80&w=1600&auto=format&fit=crop",
+      "title": "Luxury Villa Exterior",
+      "altText": "Modern white and stone facade residential villa",
+      "category": "exterior",
+      "uploadedAt": "2025-01-02T00:00:00.000Z"
+    },
+    {
+      "id": "med-3",
+      "url": "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=80&w=1600&auto=format&fit=crop",
+      "title": "Double Height Living Room",
+      "altText": "Spacious interior hall with contemporary furniture and natural light",
+      "category": "interior",
+      "uploadedAt": "2025-01-03T00:00:00.000Z"
+    },
+    {
+      "id": "med-4",
+      "url": "https://images.unsplash.com/photo-1600585152220-90363fe7e115?q=80&w=1600&auto=format&fit=crop",
+      "title": "Architectural 2D Blueprint",
+      "altText": "Architectural drawings and 2D floor plans layout",
+      "category": "floor_plan",
+      "uploadedAt": "2025-01-04T00:00:00.000Z"
+    },
+    {
+      "id": "med-5",
+      "url": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=1600&auto=format&fit=crop",
+      "title": "3D House Elevation Rendering",
+      "altText": "Photorealistic 3D visualization render of a luxury villa",
+      "category": "3d_render",
+      "uploadedAt": "2025-01-05T00:00:00.000Z"
+    }
+  ],
+  "faqs": [
+    {
+      "id": "faq-1",
+      "question": "What is included in the ₹2,250 / ₹2,450 / ₹2,650 per sq. ft. packages?",
+      "answer": "Our packages are comprehensive turnkey solutions. They cover complete foundation excavation, RCC earthquake-resistant frame, brick masonry, plastering, interior and exterior painting, certified electrical and plumbing piping, brand-name sanitaryware and CP fittings, doors, windows, and kitchen granite platform. Note: Final pricing depends on project specifications, soil depth, custom elevations, and individual material selections.",
+      "category": "Pricing"
+    },
+    {
+      "id": "faq-2",
+      "question": "How do you guarantee on-time completion?",
+      "answer": "We divide the construction project into 6 distinct milestones (Foundation, Plinth, RCC Slabs, Masonry & Plastering, Finishing & Services, Final Handover). Each stage has a strict contractual timeline with dedicated site supervisors and daily WhatsApp site progress reports.",
+      "category": "Process"
+    },
+    {
+      "id": "faq-3",
+      "question": "Do you help with CMDA / Chennai Corporation building approvals?",
+      "answer": "Yes! Our architectural and civil engineering team prepares municipal-compliant 2D architectural drawings, structural stability certificates, and assists you through the municipal plan sanctioning process.",
+      "category": "Approvals"
+    },
+    {
+      "id": "faq-4",
+      "question": "Can I customize materials within a specific package?",
+      "answer": "Absolutely. We offer complete flexibility. If you want Deluxe package framing but want to upgrade to Premium Italian marble flooring or specific bath fittings, we calculate the exact difference with zero hidden markups.",
+      "category": "Customization"
+    },
+    {
+      "id": "faq-5",
+      "question": "Do you work outside Chennai in other parts of Tamil Nadu?",
+      "answer": "Yes, while our primary operational base is in Chennai (Tondiarpet, Anna Nagar, OMR, ECR, Tambaram, etc.), we execute selected residential projects across Tamil Nadu districts including Kanchipuram, Chengalpattu, Vellore, Tiruvallur, and Coimbatore.",
+      "category": "Coverage"
+    }
+  ]
+}

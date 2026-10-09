@@ -1,0 +1,72 @@
+[
+  {
+    "id": "act-1791510871297-459",
+    "action": "Website Published",
+    "details": "Administrator published live changes to the website",
+    "timestamp": "2026-10-09T01:54:31.297Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1791510871267-969",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-10-09T01:54:31.267Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1791510532926-551",
+    "action": "Draft Saved",
+    "details": "Administrator saved work in progress draft",
+    "timestamp": "2026-10-09T01:48:52.926Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1791510504450-953",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-10-09T01:48:24.450Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1791510489382-912",
+    "action": "Draft Saved",
+    "details": "Administrator saved work in progress draft",
+    "timestamp": "2026-10-09T01:48:09.382Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1791510333444-849",
+    "action": "Image Uploaded",
+    "details": "New image added: Gemini_Generated_Image_sv9qdusv9qdusv9q.png",
+    "timestamp": "2026-10-09T01:45:33.444Z",
+    "user": "admin"
+  },
+  {
+    "id": "act-1791510220721-96",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-10-09T01:43:40.721Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1791509875688-479",
+    "action": "New Customer Enquiry",
+    "details": "Consultation request from A. Karthik (9841098765)",
+    "timestamp": "2026-10-09T01:37:55.688Z",
+    "user": "visitor"
+  },
+  {
+    "id": "act-1791509862313-5",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-10-09T01:37:42.313Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1",
+    "action": "System Initialized",
+    "details": "Initial VSHN Builders website packages and projects loaded",
+    "timestamp": "2026-10-09T01:37:31.883Z",
+    "user": "system"
+  }
+]
