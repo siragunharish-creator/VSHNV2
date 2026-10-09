@@ -77,7 +77,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
         </div>
 
         {/* Demo Credentials Info Box */}
-        <div className="p-3 mb-5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 flex items-center justify-between gap-2 text-xs">
+        {/*<div className="p-3 mb-5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 flex items-center justify-between gap-2 text-xs">
           <div>
             <span className="font-bold text-amber-900 dark:text-amber-300 block">Initial Demo Access:</span>
             <span className="text-amber-800 dark:text-amber-400 font-mono">User: <strong>harish</strong> · Pass: <strong>vshn1996</strong></span>
@@ -89,7 +89,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
           >
             Auto Fill
           </button>
-        </div>
+        </div>*/}
 
         {/* Error Alert */}
         {errorMsg && (
