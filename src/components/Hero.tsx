@@ -81,7 +81,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenConsultationModal }) => {
             </div>
             <div>
               <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                ₹2,250
+                ₹2,350
               </div>
               <p className="text-xs text-stone-300 mt-0.5">Starting Package / sq.ft</p>
             </div>
