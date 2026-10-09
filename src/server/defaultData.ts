@@ -258,7 +258,7 @@ export const initialWebsiteContent: WebsiteContent = {
       slug: 'complete-residential-construction',
       shortDescription: 'Turnkey home construction from foundation to final paint with guaranteed on-time handover.',
       fullDescription: 'Our hallmark turnkey service takes complete ownership of your dream home. From soil testing, structural drawing approval, foundation laying, brick masonry, plumbing, electrical, to premium woodwork and handovers. We provide a single point of accountability with regular milestone reporting.',
-      coverImage: 'https://images.unsplash.com/photo-1541888946425-d0fbb186156f?q=80&w=1200&auto=format&fit=crop',
+      coverImage: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1600&auto=format&fit=crop',
       startingPrice: '₹2,250 / sq. ft.',
       benefits: [
         '100% Turnkey Execution: No vendor coordination headaches',
