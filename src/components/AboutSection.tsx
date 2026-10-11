@@ -32,7 +32,7 @@ export const AboutSection: React.FC = () => {
                       {settings.experienceYears} Years Building Construction
                     </div>
                     <div className="text-xs text-stone-600 dark:text-stone-400">
-                      20+ Years Combined Founders' Civil Engineering Experience
+                      {settings.foundersExperienceYears}+ Years Combined Founders' Civil Engineering Experience
                     </div>
                   </div>
                 </div>

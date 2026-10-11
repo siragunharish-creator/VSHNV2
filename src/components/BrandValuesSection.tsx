@@ -60,13 +60,13 @@ export const BrandValuesSection: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
             <div className="lg:col-span-2 space-y-2">
               <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
-                12 Years In Construction · Over 20 Years Founders' Experience
+                {settings.experienceYears} Years In Construction · Over {settings.foundersExperienceYears} Years Founders' Experience
               </span>
               <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-serif">
                 Built by Civil Engineers, Not Middlemen Contractors
               </h3>
               <p className="text-stone-300 text-xs sm:text-sm leading-relaxed">
-                When you construct with VSHN Builders, your home is engineered by seasoned structural professionals with over two decades of soil, foundation, concrete technology, and turnkey execution expertise across Chennai.
+                When you construct with VSHN Builders, your home is engineered by seasoned structural professionals with over {settings.foundersExperienceYears} years of soil, foundation, concrete technology, and turnkey execution expertise across Chennai.
               </p>
             </div>
 

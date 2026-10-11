@@ -874,106 +874,129 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                   </div>
 
                   {/* Statistics & Experience */}
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 pt-4 border-t border-stone-200 dark:border-stone-800">
-                    <div>
-                      <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1">
-                        Company Experience
-                      </label>
-                      <input
-                        type="number"
-                        value={editableData.settings.experienceYears}
-                        onChange={(e) =>
-                          setEditableData({
-                            ...editableData,
-                            settings: {
-                              ...editableData.settings,
-                              experienceYears: Number(e.target.value),
-                            },
-                          })
-                        }
-                        className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-bold"
-                      />
+                  <div className="pt-4 border-t border-stone-200 dark:border-stone-800 space-y-3">
+                    <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                          One-Place Numbers Control (Syncs Everywhere on Website)
+                        </div>
+                        <p className="text-[11px] text-stone-600 dark:text-stone-400 mt-0.5">
+                          Updating numbers here automatically updates the Hero Banner, What Our Name Stands For (VSHN), About Us, and Footer simultaneously.
+                        </p>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1">
-                        Founders Experience
-                      </label>
-                      <input
-                        type="number"
-                        value={editableData.settings.foundersExperienceYears}
-                        onChange={(e) =>
-                          setEditableData({
-                            ...editableData,
-                            settings: {
-                              ...editableData.settings,
-                              foundersExperienceYears: Number(e.target.value),
-                            },
-                          })
-                        }
-                        className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-bold"
-                      />
-                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1">
+                          Company Experience
+                        </label>
+                        <input
+                          type="number"
+                          value={editableData.settings.experienceYears}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setEditableData({
+                              ...editableData,
+                              settings: {
+                                ...editableData.settings,
+                                experienceYears: val,
+                                hero: {
+                                  ...editableData.settings.hero,
+                                  yearsInConstructionText: `${val} Years In Construction`,
+                                },
+                              },
+                            });
+                          }}
+                          className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-bold"
+                        />
+                      </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1">
-                        Completed Projects
-                      </label>
-                      <input
-                        type="number"
-                        value={editableData.settings.completedProjectsCount}
-                        onChange={(e) =>
-                          setEditableData({
-                            ...editableData,
-                            settings: {
-                              ...editableData.settings,
-                              completedProjectsCount: Number(e.target.value),
-                            },
-                          })
-                        }
-                        className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-bold"
-                      />
-                    </div>
+                      <div>
+                        <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1">
+                          Founders Experience
+                        </label>
+                        <input
+                          type="number"
+                          value={editableData.settings.foundersExperienceYears}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setEditableData({
+                              ...editableData,
+                              settings: {
+                                ...editableData.settings,
+                                foundersExperienceYears: val,
+                                hero: {
+                                  ...editableData.settings.hero,
+                                  foundersExpText: `${val}+ Yrs Founders' Exp`,
+                                },
+                              },
+                            });
+                          }}
+                          className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-bold"
+                        />
+                      </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1">
-                        Turnkey Sq.Ft Done
-                      </label>
-                      <input
-                        type="text"
-                        value={editableData.settings.sqFtConstructed}
-                        onChange={(e) =>
-                          setEditableData({
-                            ...editableData,
-                            settings: {
-                              ...editableData.settings,
-                              sqFtConstructed: e.target.value,
-                            },
-                          })
-                        }
-                        className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-bold"
-                      />
-                    </div>
+                      <div>
+                        <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1">
+                          Completed Projects
+                        </label>
+                        <input
+                          type="number"
+                          value={editableData.settings.completedProjectsCount}
+                          onChange={(e) =>
+                            setEditableData({
+                              ...editableData,
+                              settings: {
+                                ...editableData.settings,
+                                completedProjectsCount: Number(e.target.value),
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-bold"
+                        />
+                      </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1">
-                        Starting Rate Badge
-                      </label>
-                      <input
-                        type="text"
-                        value={editableData.settings.hero.startingPackageRate ?? '₹2,250'}
-                        onChange={(e) =>
-                          setEditableData({
-                            ...editableData,
-                            settings: {
-                              ...editableData.settings,
-                              hero: { ...editableData.settings.hero, startingPackageRate: e.target.value },
-                            },
-                          })
-                        }
-                        placeholder="₹2,250"
-                        className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-bold font-mono text-amber-600"
-                      />
+                      <div>
+                        <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1">
+                          Turnkey Sq.Ft Done
+                        </label>
+                        <input
+                          type="text"
+                          value={editableData.settings.sqFtConstructed}
+                          onChange={(e) =>
+                            setEditableData({
+                              ...editableData,
+                              settings: {
+                                ...editableData.settings,
+                                sqFtConstructed: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1">
+                          Starting Rate Badge
+                        </label>
+                        <input
+                          type="text"
+                          value={editableData.settings.hero.startingPackageRate ?? '₹2,250'}
+                          onChange={(e) =>
+                            setEditableData({
+                              ...editableData,
+                              settings: {
+                                ...editableData.settings,
+                                hero: { ...editableData.settings.hero, startingPackageRate: e.target.value },
+                              },
+                            })
+                          }
+                          placeholder="₹2,250"
+                          className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-bold font-mono text-amber-600"
+                        />
+                      </div>
                     </div>
                   </div>
 

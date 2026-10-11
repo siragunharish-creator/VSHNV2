@@ -34,7 +34,7 @@ export const Footer: React.FC<FooterProps> = ({
             </p>
 
             <div className="pt-2 text-xs text-amber-400 font-semibold">
-              12 Years in Construction · Over 20 Years Founders' Civil Engineering Experience
+              {settings.experienceYears} Years in Construction · Over {settings.foundersExperienceYears} Years Founders' Civil Engineering Experience
             </div>
           </div>
 
