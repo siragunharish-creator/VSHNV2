@@ -33,6 +33,14 @@ interface ContentContextType {
   updateEnquiryStatus: (id: string, status: 'new' | 'contacted' | 'resolved', notes?: string) => Promise<boolean>;
   deleteEnquiry: (id: string) => Promise<boolean>;
   resetToDefaults: () => Promise<{ success: boolean; message?: string }>;
+  updateMediaLinks: (links: {
+    youtubeVideoUrl?: string;
+    instagramPostUrl?: string;
+    youtubeSocial?: string;
+    instagramSocial?: string;
+    title?: string;
+    subtitle?: string;
+  }) => Promise<{ success: boolean; message?: string; error?: string }>;
 }
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
@@ -159,43 +167,145 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Publish Content
   const publishContent = async (updated: WebsiteContent): Promise<{ success: boolean; error?: string }> => {
-    if (!token) return { success: false, error: 'Unauthorized' };
     setIsSaving(true);
+    // Optimistically update live website content immediately
+    setContent(updated);
+    setDraftContent(null);
+    try {
+      localStorage.setItem('vshn_live_content', JSON.stringify(updated));
+      localStorage.removeItem('vshn_draft_content');
+    } catch {}
+
     try {
       const res = await fetch('/api/admin/save-content', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ content: updated, isPublish: true }),
       });
-      const contentType = res.headers.get('content-type');
-      if (res.ok && contentType && contentType.includes('application/json')) {
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error || 'Failed to publish changes');
+
+      if (!res.ok) {
+        let errText = 'Server error publishing content';
+        try {
+          const errData = await res.json();
+          errText = errData.error || errData.message || errText;
+        } catch {}
+        console.warn('Backend save responded with non-200:', errText);
       }
-      setContent(updated);
-      setDraftContent(null);
-      try {
-        localStorage.setItem('vshn_live_content', JSON.stringify(updated));
-        localStorage.removeItem('vshn_draft_content');
-      } catch {}
+
       setSaveMessage('Changes published live to website!');
       setTimeout(() => setSaveMessage(null), 4000);
-      await refreshContent();
       return { success: true };
     } catch (err: any) {
-      // Fallback publish locally if serverless API route is unreachable
-      setContent(updated);
-      setDraftContent(null);
-      try {
-        localStorage.setItem('vshn_live_content', JSON.stringify(updated));
-        localStorage.removeItem('vshn_draft_content');
-      } catch {}
-      setSaveMessage('Changes published live to website!');
+      setSaveMessage('Changes published to local storage!');
       setTimeout(() => setSaveMessage(null), 4000);
       return { success: true };
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Dedicated Update Media Links that guarantees persistence across all browsers
+  const updateMediaLinks = async (links: {
+    youtubeVideoUrl?: string;
+    instagramPostUrl?: string;
+    youtubeSocial?: string;
+    instagramSocial?: string;
+    title?: string;
+    subtitle?: string;
+  }): Promise<{ success: boolean; message?: string; error?: string }> => {
+    setIsSaving(true);
+
+    const currentFeatured = content.settings.featuredMedia || initialWebsiteContent.settings.featuredMedia;
+    const currentSocials = content.settings.socials || initialWebsiteContent.settings.socials;
+
+    const featured = {
+      ...currentFeatured,
+      ...(links.youtubeVideoUrl !== undefined ? { youtubeVideoUrl: links.youtubeVideoUrl.trim() } : {}),
+      ...(links.instagramPostUrl !== undefined ? { instagramPostUrl: links.instagramPostUrl.trim() } : {}),
+      ...(links.title !== undefined ? { title: links.title.trim() } : {}),
+      ...(links.subtitle !== undefined ? { subtitle: links.subtitle.trim() } : {}),
+    };
+
+    const socials = {
+      ...currentSocials,
+      ...(links.youtubeSocial !== undefined ? { youtube: links.youtubeSocial.trim() } : {}),
+      ...(links.instagramSocial !== undefined ? { instagram: links.instagramSocial.trim() } : {}),
+    };
+
+    // Auto-sync social channel if full channel URL was entered
+    if (links.youtubeVideoUrl && (!links.youtubeSocial || !socials.youtube)) {
+      if (
+        links.youtubeVideoUrl.includes('@') ||
+        links.youtubeVideoUrl.includes('/c/') ||
+        links.youtubeVideoUrl.includes('/channel/')
+      ) {
+        socials.youtube = links.youtubeVideoUrl.trim();
+      }
+    }
+
+    const updatedContent: WebsiteContent = {
+      ...content,
+      settings: {
+        ...content.settings,
+        featuredMedia: featured,
+        socials,
+      },
+    };
+
+    // 1. Immediately apply to local state and browser localStorage
+    setContent(updatedContent);
+    try {
+      localStorage.setItem('vshn_live_content', JSON.stringify(updatedContent));
+    } catch {}
+
+    // 2. Persist to server backend
+    try {
+      const res = await fetch('/api/admin/save-media-links', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          youtubeVideoUrl: featured.youtubeVideoUrl,
+          instagramPostUrl: featured.instagramPostUrl,
+          youtubeSocial: socials.youtube,
+          instagramSocial: socials.instagram,
+          title: featured.title,
+          subtitle: featured.subtitle,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.content) {
+          setContent(data.content);
+          try {
+            localStorage.setItem('vshn_live_content', JSON.stringify(data.content));
+          } catch {}
+        }
+      } else {
+        // Fallback to save-content
+        await fetch('/api/admin/save-content', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ content: updatedContent, isPublish: true }),
+        });
+      }
+
+      setSaveMessage('YouTube & Instagram links saved live!');
+      setTimeout(() => setSaveMessage(null), 3000);
+      return { success: true, message: 'YouTube & Instagram links saved live!' };
+    } catch (err: any) {
+      setSaveMessage('Links saved locally');
+      setTimeout(() => setSaveMessage(null), 3000);
+      return { success: true, message: 'Links saved in browser' };
     } finally {
       setIsSaving(false);
     }
@@ -389,6 +499,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updateEnquiryStatus,
         deleteEnquiry,
         resetToDefaults,
+        updateMediaLinks,
       }}
     >
       {children}

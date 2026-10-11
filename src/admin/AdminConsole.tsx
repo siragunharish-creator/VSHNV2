@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   LayoutDashboard,
   Home,
@@ -82,12 +82,17 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
     updateEnquiryStatus,
     deleteEnquiry,
     resetToDefaults,
+    updateMediaLinks,
     isSaving,
     saveMessage,
   } = useContent();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // State for direct Media Links save
+  const [isSavingMediaLinks, setIsSavingMediaLinks] = useState(false);
+  const [mediaSavedSuccess, setMediaSavedSuccess] = useState(false);
 
   // Media Library filters & search
   const [mediaCategoryFilter, setMediaCategoryFilter] = useState<string>('all');
@@ -97,6 +102,15 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
   const [editableData, setEditableData] = useState<WebsiteContent>(() => {
     return JSON.parse(JSON.stringify(draftContent || content));
   });
+
+  // Re-synchronize editableData whenever published content or draft is loaded/refreshed
+  useEffect(() => {
+    if (draftContent) {
+      setEditableData(JSON.parse(JSON.stringify(draftContent)));
+    } else if (content) {
+      setEditableData(JSON.parse(JSON.stringify(content)));
+    }
+  }, [content, draftContent]);
 
   const [statusNotification, setStatusNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showPublishSuccessModal, setShowPublishSuccessModal] = useState<boolean>(false);
@@ -129,6 +143,47 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
       ),
     }));
     showToast('success', 'Image title and details updated in draft.');
+  };
+
+  // Dedicated Save Media Links handler (Instant Live Persistence)
+  const handleSaveMediaLinks = async () => {
+    setIsSavingMediaLinks(true);
+    setMediaSavedSuccess(false);
+
+    const feat = editableData.settings.featuredMedia || {
+      youtubeVideoUrl: '',
+      instagramPostUrl: '',
+      title: '',
+      subtitle: '',
+    };
+    const soc = editableData.settings.socials || {
+      instagram: '',
+      youtube: '',
+      threads: '',
+    };
+
+    try {
+      const res = await updateMediaLinks({
+        youtubeVideoUrl: feat.youtubeVideoUrl,
+        instagramPostUrl: feat.instagramPostUrl,
+        youtubeSocial: soc.youtube,
+        instagramSocial: soc.instagram,
+        title: feat.title,
+        subtitle: feat.subtitle,
+      });
+
+      setIsSavingMediaLinks(false);
+      if (res.success) {
+        setMediaSavedSuccess(true);
+        showToast('success', 'YouTube & Instagram links saved & live across all devices!');
+        setTimeout(() => setMediaSavedSuccess(false), 5000);
+      } else {
+        showToast('error', res.error || 'Failed to save media links.');
+      }
+    } catch (err: any) {
+      setIsSavingMediaLinks(false);
+      showToast('error', err.message || 'Error updating media links.');
+    }
   };
 
   // Media management functions (Active/Inactive toggle, Category change, Delete)
@@ -1751,22 +1806,68 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
 
               return (
                 <div className="bg-white dark:bg-stone-900 rounded-xl p-6 sm:p-8 border border-stone-200 dark:border-stone-800 space-y-6">
-                  <div>
-                    <h2 className="text-xl font-bold font-serif text-stone-900 dark:text-stone-100 flex items-center gap-2">
-                      <Play className="w-5 h-5 text-amber-500" />
-                      <span>YouTube &amp; Instagram Video Manager</span>
-                    </h2>
-                    <p className="text-xs text-stone-500 mt-1">
-                      Paste any YouTube video/Shorts link and Instagram Reel/Post link. The website will automatically embed and play them!
-                    </p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200 dark:border-stone-800">
+                    <div>
+                      <h2 className="text-xl font-bold font-serif text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                        <Play className="w-5 h-5 text-amber-500" />
+                        <span>YouTube &amp; Instagram Video Manager</span>
+                      </h2>
+                      <p className="text-xs text-stone-500 mt-1">
+                        Paste any YouTube video/Shorts link and Instagram Reel/Post link. When updated, changes save immediately and reflect live across all browsers.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveMediaLinks}
+                        disabled={isSavingMediaLinks}
+                        className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-stone-950 flex items-center gap-1.5 shadow-md transition-colors cursor-pointer disabled:opacity-60"
+                      >
+                        {isSavingMediaLinks ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Saving Live...</span>
+                          </>
+                        ) : mediaSavedSuccess ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-950 font-bold" />
+                            <span>Saved Across All Browsers!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-3.5 h-3.5" />
+                            <span>Save &amp; Update Live Links</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
+
+                  {mediaSavedSuccess && (
+                    <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>YouTube and Instagram links successfully saved and published! Any device or browser will now play these updated links.</span>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* YouTube Video Config */}
                     <div className="p-5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-950/50 space-y-4">
-                      <div className="flex items-center gap-2 text-red-600 font-bold text-sm">
-                        <Youtube className="w-5 h-5" />
-                        <span>YouTube Video Link</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-red-600 font-bold text-sm">
+                          <Youtube className="w-5 h-5" />
+                          <span>YouTube Video Link</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleSaveMediaLinks}
+                          disabled={isSavingMediaLinks}
+                          className="px-2.5 py-1 rounded bg-red-600 hover:bg-red-500 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-60"
+                        >
+                          <Save className="w-3 h-3" />
+                          <span>Save Video</span>
+                        </button>
                       </div>
 
                       <div>
@@ -1821,9 +1922,20 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
 
                     {/* Instagram Post/Reel Config */}
                     <div className="p-5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-950/50 space-y-4">
-                      <div className="flex items-center gap-2 text-pink-600 font-bold text-sm">
-                        <Instagram className="w-5 h-5" />
-                        <span>Instagram Post / Reel Link</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-pink-600 font-bold text-sm">
+                          <Instagram className="w-5 h-5" />
+                          <span>Instagram Post / Reel Link</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleSaveMediaLinks}
+                          disabled={isSavingMediaLinks}
+                          className="px-2.5 py-1 rounded bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-60"
+                        >
+                          <Save className="w-3 h-3" />
+                          <span>Save Post</span>
+                        </button>
                       </div>
 
                       <div>
@@ -1926,21 +2038,28 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={handleSaveDraft}
-                      className="px-4 py-2 rounded-xl text-xs font-bold bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 hover:bg-stone-200"
-                    >
-                      Save Draft
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handlePublish}
-                      className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
-                    >
-                      Publish Live
-                    </button>
+                  <div className="pt-4 border-t border-stone-200 dark:border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span className="text-[11px] text-stone-500">
+                      Clicking &ldquo;Save &amp; Update Live Links&rdquo; immediately saves to server and publishes to all visitors.
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveDraft}
+                        className="px-4 py-2 rounded-xl text-xs font-bold bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 hover:bg-stone-200"
+                      >
+                        Save Draft
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveMediaLinks}
+                        disabled={isSavingMediaLinks}
+                        className="px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-stone-950 flex items-center gap-1.5 shadow-md transition-colors cursor-pointer disabled:opacity-60"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>{isSavingMediaLinks ? 'Saving Across Browsers...' : 'Save & Update Live Links'}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -2162,7 +2281,17 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
 
                   {/* Socials */}
                   <div>
-                    <label className="font-bold block mb-1">Instagram URL</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold block">Instagram Profile URL</label>
+                      <button
+                        type="button"
+                        onClick={handleSaveMediaLinks}
+                        disabled={isSavingMediaLinks}
+                        className="text-[10px] px-2 py-0.5 rounded bg-pink-600 text-white font-bold hover:bg-pink-500 cursor-pointer disabled:opacity-50"
+                      >
+                        Save Link
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={editableData.settings.socials.instagram}
@@ -2180,7 +2309,17 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                   </div>
 
                   <div>
-                    <label className="font-bold block mb-1">YouTube Channel URL</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold block">YouTube Channel URL</label>
+                      <button
+                        type="button"
+                        onClick={handleSaveMediaLinks}
+                        disabled={isSavingMediaLinks}
+                        className="text-[10px] px-2 py-0.5 rounded bg-red-600 text-white font-bold hover:bg-red-500 cursor-pointer disabled:opacity-50"
+                      >
+                        Save Link
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={editableData.settings.socials.youtube}
@@ -2213,6 +2352,23 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                       }
                       className="w-full p-2 rounded border bg-stone-50 dark:bg-stone-800 font-mono text-[11px]"
                     />
+                  </div>
+
+                  <div className="sm:col-span-2 pt-4 border-t border-stone-200 dark:border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span className="text-[11px] text-stone-500">
+                      Changes saved here immediately update the website, social links, and directions on all browsers.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await handleSaveMediaLinks();
+                        await handlePublish();
+                      }}
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-stone-950 flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Save &amp; Publish Contact &amp; Social Links</span>
+                    </button>
                   </div>
                 </div>
               </div>

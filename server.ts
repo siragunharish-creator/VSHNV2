@@ -214,6 +214,31 @@ app.post('/api/admin/save-content', requireAdminAuth, (req: Request, res: Respon
   }
 });
 
+// Dedicated Instant YouTube & Instagram Links Update (Immediate Persistence)
+app.post('/api/admin/save-media-links', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { youtubeVideoUrl, instagramPostUrl, youtubeSocial, instagramSocial, title, subtitle } = req.body;
+    const updated = db.updateMediaLinks(
+      {
+        youtubeVideoUrl,
+        instagramPostUrl,
+        youtubeSocial,
+        instagramSocial,
+        title,
+        subtitle,
+      },
+      'harish'
+    );
+    res.json({
+      success: true,
+      message: 'YouTube and Instagram links saved and updated live successfully!',
+      content: updated,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to update links: ' + err.message });
+  }
+});
+
 // Image Upload (Multer file or base64) with robust error handling
 app.post('/api/admin/upload', requireAdminAuth, (req: Request, res: Response) => {
   upload.single('image')(req, res, (err: any) => {

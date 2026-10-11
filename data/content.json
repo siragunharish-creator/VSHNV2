@@ -21,6 +21,12 @@
       "youtube": "https://www.youtube.com/@vshnbuilders",
       "threads": "https://www.threads.net/@vshn_builders"
     },
+    "featuredMedia": {
+      "youtubeVideoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "instagramPostUrl": "https://www.instagram.com/p/DF2N8c5z0fL/",
+      "title": "Site Walkthrough & Construction Highlights",
+      "subtitle": "Watch our real Chennai site tour videos and follow our construction stories on YouTube and Instagram."
+    },
     "businessHours": "Monday – Saturday: 9:00 AM – 7:30 PM | Sunday: By Prior Appointment",
     "hero": {
       "headline": "Your Dream Home. Our Responsibility.",

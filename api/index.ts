@@ -169,6 +169,31 @@ app.post('/api/admin/save-content', requireAdminAuth, (req: express.Request, res
   }
 });
 
+// Dedicated Instant YouTube & Instagram Links Update (Immediate Persistence)
+app.post('/api/admin/save-media-links', requireAdminAuth, (req: express.Request, res: express.Response) => {
+  try {
+    const { youtubeVideoUrl, instagramPostUrl, youtubeSocial, instagramSocial, title, subtitle } = req.body;
+    const updated = db.updateMediaLinks(
+      {
+        youtubeVideoUrl,
+        instagramPostUrl,
+        youtubeSocial,
+        instagramSocial,
+        title,
+        subtitle,
+      },
+      'harish'
+    );
+    res.json({
+      success: true,
+      message: 'YouTube and Instagram links saved and updated live successfully!',
+      content: updated,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to update links: ' + err.message });
+  }
+});
+
 app.delete('/api/admin/media/:id', requireAdminAuth, (req: express.Request, res: express.Response) => {
   const { id } = req.params;
   const deleted = db.deleteMedia(id);
