@@ -22,8 +22,8 @@
       "threads": "https://www.threads.net/@vshn_builders"
     },
     "featuredMedia": {
-      "youtubeVideoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      "instagramPostUrl": "https://www.instagram.com/p/DF2N8c5z0fL/",
+      "youtubeVideoUrl": "https://youtube.com/shorts/nTpqiqpfmJ4?si=7Qw0IgRCnePk5aIc",
+      "instagramPostUrl": "https://www.instagram.com/reel/DeVzM42zHX2/?exln=MTdmOGRldTh3Mnc0cw==",
       "title": "Site Walkthrough & Construction Highlights",
       "subtitle": "Watch our real Chennai site tour videos and follow our construction stories on YouTube and Instagram."
     },
@@ -31,6 +31,10 @@
     "hero": {
       "headline": "Your Dream Home. Our Responsibility.",
       "subheading": "From thoughtful planning and architectural design to complete home construction, VSHN Builders helps turn your vision into a home built with care, quality, and trust.",
+      "locationKicker": "Chennai & Tamil Nadu",
+      "yearsInConstructionText": "12 Years In Construction",
+      "foundersExpText": "20+ Yrs Founders' Exp",
+      "startingPackageRate": "₹2,250",
       "primaryCtaText": "Get Free Consultation",
       "primaryCtaLink": "#contact",
       "secondaryCtaText": "Explore Our Projects",
@@ -39,7 +43,7 @@
     },
     "aboutSection": {
       "introHeading": "Crafting Generational Homes with Integrity & Architectural Precision",
-      "introParagraph": "At VSHN Builders, we believe a home is more than walls and a roof—it is a sacred sanctuary where your family’s memories take root. With 12 years in active building construction and more than 20 years of combined founders’ engineering expertise, we bring deep local Chennai knowledge, uncompromised structural rigor, and clear transparent costing to every project.",
+      "introParagraph": "At VSHN Builders, we believe a home is more than walls and a roof—it is a sacred sanctuary where your family’s memories take root. With 20 years in active building construction and more than 24 years of combined founders’ engineering expertise, we bring deep local Chennai knowledge, uncompromised structural rigor, and clear transparent costing to every project.",
       "story": "Founded in Chennai, VSHN Builders was established to bridge the gap between architectural elegance and trustworthy construction practices. Starting with North Chennai and expanding rapidly across Chennai metropolitan and Tamil Nadu districts, our team of seasoned civil engineers, architects, and master craftsmen has delivered over 85 turnkey residential projects on time and within budget.",
       "founderName": "Harish & Founding Team",
       "founderTitle": "Founders & Principal Civil Engineers",
@@ -80,9 +84,17 @@
       "projects": true,
       "packages": true,
       "process": true,
+      "about": true,
       "testimonials": true,
+      "gallery": true,
+      "mediaShowcase": true,
       "faq": true,
       "contact": true
+    },
+    "seo": {
+      "metaTitle": "VSHN Builders Chennai | Premium Home Construction & Architectural Design",
+      "metaDescription": "Trusted turnkey home builders in Chennai with 12+ years experience. Transparent rates from ₹2,250/sq.ft, on-time milestone delivery, 2D architectural plans, and 3D designs.",
+      "keywords": "builders in chennai, turnkey construction chennai, independent house builder, villa construction, vshn builders"
     }
   },
   "projects": [
@@ -399,7 +411,7 @@
     {
       "id": "pkg-super",
       "name": "Super",
-      "ratePerSqFt": 2250,
+      "ratePerSqFt": 2350,
       "badge": "High Value",
       "tagline": "Quality residential construction optimized for smart budgets without structural compromise.",
       "description": "Ideal for independent homes and rental residential floors where dependable durability, quality brands, and strict budget adherence are paramount.",

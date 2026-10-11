@@ -708,6 +708,72 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                     />
                   </div>
 
+                  {/* Hero Top Location & Experience Kicker Bar (editable) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
+                        Location Kicker
+                      </label>
+                      <input
+                        type="text"
+                        value={editableData.settings.hero.locationKicker ?? 'Chennai & Tamil Nadu'}
+                        onChange={(e) =>
+                          setEditableData({
+                            ...editableData,
+                            settings: {
+                              ...editableData.settings,
+                              hero: { ...editableData.settings.hero, locationKicker: e.target.value },
+                            },
+                          })
+                        }
+                        placeholder="Chennai & Tamil Nadu"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
+                        Years in Construction Text
+                      </label>
+                      <input
+                        type="text"
+                        value={editableData.settings.hero.yearsInConstructionText ?? '12 Years In Construction'}
+                        onChange={(e) =>
+                          setEditableData({
+                            ...editableData,
+                            settings: {
+                              ...editableData.settings,
+                              hero: { ...editableData.settings.hero, yearsInConstructionText: e.target.value },
+                            },
+                          })
+                        }
+                        placeholder="12 Years In Construction"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
+                        Founders' Exp Text
+                      </label>
+                      <input
+                        type="text"
+                        value={editableData.settings.hero.foundersExpText ?? "20+ Yrs Founders' Exp"}
+                        onChange={(e) =>
+                          setEditableData({
+                            ...editableData,
+                            settings: {
+                              ...editableData.settings,
+                              hero: { ...editableData.settings.hero, foundersExpText: e.target.value },
+                            },
+                          })
+                        }
+                        placeholder="20+ Yrs Founders' Exp"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs font-medium"
+                      />
+                    </div>
+                  </div>
+
                   {/* Hero Subheading */}
                   <div>
                     <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1">
@@ -808,7 +874,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                   </div>
 
                   {/* Statistics & Experience */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-stone-200 dark:border-stone-800">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 pt-4 border-t border-stone-200 dark:border-stone-800">
                     <div>
                       <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1">
                         Company Experience
@@ -886,6 +952,27 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                           })
                         }
                         className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1">
+                        Starting Rate Badge
+                      </label>
+                      <input
+                        type="text"
+                        value={editableData.settings.hero.startingPackageRate ?? '₹2,250'}
+                        onChange={(e) =>
+                          setEditableData({
+                            ...editableData,
+                            settings: {
+                              ...editableData.settings,
+                              hero: { ...editableData.settings.hero, startingPackageRate: e.target.value },
+                            },
+                          })
+                        }
+                        placeholder="₹2,250"
+                        className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-bold font-mono text-amber-600"
                       />
                     </div>
                   </div>

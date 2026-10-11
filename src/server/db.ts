@@ -134,7 +134,7 @@ export class DatabaseService {
     if (raw) {
       try {
         const parsed = JSON.parse(raw);
-        // Ensure new settings fields like featuredMedia are merged seamlessly
+        // Ensure new settings fields like featuredMedia, seo, sectionVisibility are merged seamlessly
         return {
           ...initialWebsiteContent,
           ...parsed,
@@ -148,6 +148,22 @@ export class DatabaseService {
             socials: {
               ...initialWebsiteContent.settings.socials,
               ...(parsed.settings?.socials || {}),
+            },
+            hero: {
+              ...initialWebsiteContent.settings.hero,
+              ...(parsed.settings?.hero || {}),
+            },
+            aboutSection: {
+              ...initialWebsiteContent.settings.aboutSection,
+              ...(parsed.settings?.aboutSection || {}),
+            },
+            sectionVisibility: {
+              ...initialWebsiteContent.settings.sectionVisibility,
+              ...(parsed.settings?.sectionVisibility || {}),
+            },
+            seo: {
+              ...initialWebsiteContent.settings.seo,
+              ...(parsed.settings?.seo || {}),
             },
           },
         };
@@ -430,6 +446,128 @@ export class DatabaseService {
       `Updated YouTube (${featured.youtubeVideoUrl || 'default'}) & Instagram (${featured.instagramPostUrl || 'default'}) links`,
       user
     );
+    return this.content;
+  }
+
+  // Update Settings (Branding, Hero, About, Contact, SEO, Section Visibility)
+  public updateSettings(partialSettings: Partial<SiteSettings>, user: string, isPublish: boolean = true): WebsiteContent {
+    const updatedSettings: SiteSettings = {
+      ...this.content.settings,
+      ...partialSettings,
+      hero: {
+        ...this.content.settings.hero,
+        ...(partialSettings.hero || {}),
+      },
+      aboutSection: {
+        ...this.content.settings.aboutSection,
+        ...(partialSettings.aboutSection || {}),
+      },
+      socials: {
+        ...this.content.settings.socials,
+        ...(partialSettings.socials || {}),
+      },
+      featuredMedia: {
+        ...this.content.settings.featuredMedia,
+        ...(partialSettings.featuredMedia || {}),
+      },
+      sectionVisibility: {
+        ...this.content.settings.sectionVisibility,
+        ...(partialSettings.sectionVisibility || {}),
+      },
+      seo: {
+        ...this.content.settings.seo,
+        ...(partialSettings.seo || {}),
+      },
+    };
+
+    if (isPublish) {
+      this.content = {
+        ...this.content,
+        settings: updatedSettings,
+      };
+      this.draftContent = null;
+      this.saveContentDirect(this.content);
+      try {
+        if (fs.existsSync(DRAFT_FILE)) fs.unlinkSync(DRAFT_FILE);
+      } catch {}
+      this.logActivity('Settings Published', 'Administrator updated and published website settings live', user);
+    } else {
+      this.draftContent = {
+        ...(this.draftContent || this.content),
+        settings: updatedSettings,
+      };
+      safeWriteFile(DRAFT_FILE, JSON.stringify(this.draftContent, null, 2));
+      this.logActivity('Settings Draft Saved', 'Administrator saved website settings draft', user);
+    }
+
+    return this.content;
+  }
+
+  // Update or Create FAQ
+  public updateFaq(faq: { id?: string; question: string; answer: string; category?: string }, user: string): WebsiteContent {
+    const id = faq.id || 'faq-' + Date.now();
+    const existingIndex = this.content.faqs.findIndex((f) => f.id === id);
+    const item = {
+      id,
+      question: faq.question.trim(),
+      answer: faq.answer.trim(),
+      category: faq.category?.trim() || 'General',
+    };
+
+    const updatedFaqs = [...this.content.faqs];
+    if (existingIndex >= 0) {
+      updatedFaqs[existingIndex] = item;
+    } else {
+      updatedFaqs.push(item);
+    }
+
+    this.content = {
+      ...this.content,
+      faqs: updatedFaqs,
+    };
+    if (this.draftContent) {
+      this.draftContent = {
+        ...this.draftContent,
+        faqs: updatedFaqs,
+      };
+      safeWriteFile(DRAFT_FILE, JSON.stringify(this.draftContent, null, 2));
+    }
+    this.saveContentDirect(this.content);
+    this.logActivity('FAQ Updated', `Updated FAQ: "${item.question.slice(0, 40)}"`, user);
+    return this.content;
+  }
+
+  // Delete FAQ
+  public deleteFaq(id: string, user: string): WebsiteContent {
+    this.content = {
+      ...this.content,
+      faqs: this.content.faqs.filter((f) => f.id !== id),
+    };
+    if (this.draftContent) {
+      this.draftContent = {
+        ...this.draftContent,
+        faqs: this.draftContent.faqs.filter((f) => f.id !== id),
+      };
+      safeWriteFile(DRAFT_FILE, JSON.stringify(this.draftContent, null, 2));
+    }
+    this.saveContentDirect(this.content);
+    this.logActivity('FAQ Deleted', `Deleted FAQ ${id}`, user);
+    return this.content;
+  }
+
+  // Master 1-Click Publish All
+  public publishAll(user: string): WebsiteContent {
+    if (this.draftContent) {
+      this.content = this.draftContent;
+      this.draftContent = null;
+    }
+    this.saveContentDirect(this.content);
+    try {
+      if (fs.existsSync(DRAFT_FILE)) fs.unlinkSync(DRAFT_FILE);
+      const tmpDraft = path.join(TMP_DATA_DIR, 'draft.json');
+      if (fs.existsSync(tmpDraft)) fs.unlinkSync(tmpDraft);
+    } catch {}
+    this.logActivity('All Content Published Live', 'Administrator published all draft changes to live website', user);
     return this.content;
   }
 

@@ -139,9 +139,51 @@ app.post('/api/auth/change-password', requireAdminAuth, (req: Request, res: Resp
   res.json({ success: true, message: 'Password updated successfully.' });
 });
 
-// 2. Public Content
+// ======================== REAL-TIME BROADCAST ENGINE ========================
+const sseClients = new Set<Response>();
+
+export function broadcastContentUpdate(updatedContent: any) {
+  const payload = JSON.stringify({ content: updatedContent, timestamp: Date.now() });
+  for (const client of sseClients) {
+    try {
+      client.write(`event: content_update\ndata: ${payload}\n\n`);
+    } catch {
+      sseClients.delete(client);
+    }
+  }
+}
+
+// 2. Real-Time SSE Stream for Instant Global Synchronization Across Devices
+app.get('/api/content/stream', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+
+  // Send immediate initial authoritative state
+  const current = db.getPublicContent();
+  res.write(`event: init\ndata: ${JSON.stringify({ content: current, timestamp: Date.now() })}\n\n`);
+
+  sseClients.add(res);
+
+  // Keep connection alive with periodic heartbeats
+  const heartbeat = setInterval(() => {
+    res.write(': ping\n\n');
+  }, 25000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    sseClients.delete(res);
+  });
+});
+
+// 3. Public Content with Zero-Cache Headers (Single Source of Truth)
 app.get('/api/content', (_req: Request, res: Response) => {
   try {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const data = db.getPublicContent();
     res.json(data);
   } catch (err: any) {
@@ -149,7 +191,7 @@ app.get('/api/content', (_req: Request, res: Response) => {
   }
 });
 
-// 3. Contact Submissions (Public)
+// 4. Contact Submissions (Public)
 app.post('/api/contact', (req: Request, res: Response) => {
   const { name, phone, email, plotLocation, serviceNeeded, estimatedSqFt, preferredPackage, message } = req.body;
 
@@ -186,7 +228,7 @@ app.post('/api/contact', (req: Request, res: Response) => {
   }
 });
 
-// 4. Admin Data (Protected)
+// 5. Admin Data (Protected)
 app.get('/api/admin/data', requireAdminAuth, (_req: Request, res: Response) => {
   try {
     const data = db.getAdminData();
@@ -205,12 +247,40 @@ app.post('/api/admin/save-content', requireAdminAuth, (req: Request, res: Respon
 
   try {
     db.saveContent(content, Boolean(isPublish), 'harish');
+    const publicContent = db.getPublicContent();
+    if (isPublish) {
+      broadcastContentUpdate(publicContent);
+    }
     res.json({
       success: true,
       message: isPublish ? 'Website changes published successfully!' : 'Draft saved successfully.',
+      content: publicContent,
     });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to save content: ' + err.message });
+  }
+});
+
+// Dedicated Settings Update (Branding, Hero, About, Contact, SEO, Section Visibility)
+app.post('/api/admin/update-settings', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { settings, isPublish = true } = req.body;
+    if (!settings) {
+      res.status(400).json({ error: 'Settings payload is required' });
+      return;
+    }
+    const updated = db.updateSettings(settings, 'harish', Boolean(isPublish));
+    const publicContent = db.getPublicContent();
+    if (isPublish) {
+      broadcastContentUpdate(publicContent);
+    }
+    res.json({
+      success: true,
+      message: isPublish ? 'Settings published live!' : 'Settings draft saved.',
+      content: publicContent,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to update settings: ' + err.message });
   }
 });
 
@@ -229,13 +299,67 @@ app.post('/api/admin/save-media-links', requireAdminAuth, (req: Request, res: Re
       },
       'harish'
     );
+    const publicContent = db.getPublicContent();
+    broadcastContentUpdate(publicContent);
     res.json({
       success: true,
       message: 'YouTube and Instagram links saved and updated live successfully!',
-      content: updated,
+      content: publicContent,
     });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to update links: ' + err.message });
+  }
+});
+
+// FAQ Management Endpoints
+app.post('/api/admin/save-faq', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { id, question, answer, category } = req.body;
+    if (!question || !answer) {
+      res.status(400).json({ error: 'Question and Answer are required' });
+      return;
+    }
+    db.updateFaq({ id, question, answer, category }, 'harish');
+    const publicContent = db.getPublicContent();
+    broadcastContentUpdate(publicContent);
+    res.json({
+      success: true,
+      message: 'FAQ saved and published live!',
+      content: publicContent,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to save FAQ: ' + err.message });
+  }
+});
+
+app.delete('/api/admin/faq/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    db.deleteFaq(req.params.id, 'harish');
+    const publicContent = db.getPublicContent();
+    broadcastContentUpdate(publicContent);
+    res.json({
+      success: true,
+      message: 'FAQ removed from website.',
+      content: publicContent,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to delete FAQ: ' + err.message });
+  }
+});
+
+// Master 1-Click Publish All
+app.post('/api/admin/publish-all', requireAdminAuth, (_req: Request, res: Response) => {
+  try {
+    db.publishAll('harish');
+    const publicContent = db.getPublicContent();
+    broadcastContentUpdate(publicContent);
+    res.json({
+      success: true,
+      message: 'All changes published live to website!',
+      content: publicContent,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Publish failed: ' + err.message });
   }
 });
 

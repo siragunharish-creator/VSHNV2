@@ -28,12 +28,12 @@ export const Hero: React.FC<HeroProps> = ({ onOpenConsultationModal }) => {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-12">
         <div className="max-w-3xl">
           {/* Location & Tagline Kicker (Unboxed clean typography per anti-slop guidelines) */}
-          <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold tracking-wide uppercase text-amber-400 mb-4">
-            <span>Chennai &amp; Tamil Nadu</span>
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold tracking-wide uppercase text-amber-400 mb-4 flex-wrap">
+            <span>{hero.locationKicker || 'Chennai & Tamil Nadu'}</span>
             <span aria-hidden="true" className="text-amber-500/60">·</span>
-            <span>12 Years In Construction</span>
+            <span>{hero.yearsInConstructionText || `${settings.experienceYears || 12} Years In Construction`}</span>
             <span aria-hidden="true" className="text-amber-500/60">·</span>
-            <span>20+ Yrs Founders' Exp</span>
+            <span>{hero.foundersExpText || `${settings.foundersExperienceYears || 20}+ Yrs Founders' Exp`}</span>
           </div>
 
           {/* Main Headline */}
@@ -81,7 +81,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenConsultationModal }) => {
             </div>
             <div>
               <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                ₹2,250
+                {hero.startingPackageRate || '₹2,250'}
               </div>
               <p className="text-xs text-stone-300 mt-0.5">Starting Package / sq.ft</p>
             </div>

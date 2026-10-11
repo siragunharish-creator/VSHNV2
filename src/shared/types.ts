@@ -31,6 +31,10 @@ export interface SiteSettings {
   hero: {
     headline: string;
     subheading: string;
+    locationKicker?: string;
+    yearsInConstructionText?: string;
+    foundersExpText?: string;
+    startingPackageRate?: string;
     primaryCtaText: string;
     primaryCtaLink: string;
     secondaryCtaText: string;
@@ -63,9 +67,17 @@ export interface SiteSettings {
     projects: boolean;
     packages: boolean;
     process: boolean;
+    about: boolean;
     testimonials: boolean;
+    gallery: boolean;
+    mediaShowcase: boolean;
     faq: boolean;
     contact: boolean;
+  };
+  seo?: {
+    metaTitle?: string;
+    metaDescription?: string;
+    keywords?: string;
   };
 }
 

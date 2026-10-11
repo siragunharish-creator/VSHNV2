@@ -33,6 +33,10 @@ export const initialWebsiteContent: WebsiteContent = {
     hero: {
       headline: 'Your Dream Home. Our Responsibility.',
       subheading: 'From thoughtful planning and architectural design to complete home construction, VSHN Builders helps turn your vision into a home built with care, quality, and trust.',
+      locationKicker: 'Chennai & Tamil Nadu',
+      yearsInConstructionText: '12 Years In Construction',
+      foundersExpText: "20+ Yrs Founders' Exp",
+      startingPackageRate: '₹2,250',
       primaryCtaText: 'Get Free Consultation',
       primaryCtaLink: '#contact',
       secondaryCtaText: 'Explore Our Projects',
@@ -82,9 +86,17 @@ export const initialWebsiteContent: WebsiteContent = {
       projects: true,
       packages: true,
       process: true,
+      about: true,
       testimonials: true,
+      gallery: true,
+      mediaShowcase: true,
       faq: true,
       contact: true,
+    },
+    seo: {
+      metaTitle: 'VSHN Builders Chennai | Premium Home Construction & Architectural Design',
+      metaDescription: 'Trusted turnkey home builders in Chennai with 12+ years experience. Transparent rates from ₹2,250/sq.ft, on-time milestone delivery, 2D architectural plans, and 3D designs.',
+      keywords: 'builders in chennai, turnkey construction chennai, independent house builder, villa construction, vshn builders',
     },
   },
   projects: [
