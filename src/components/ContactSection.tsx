@@ -42,6 +42,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
     setIsSubmitting(true);
     setSubmissionStatus('idle');
 
+    // 1. Submit contact form to save enquiry
     const result = await submitContactForm({
       name: formData.name.trim(),
       phone: formData.phone.trim(),
@@ -55,9 +56,36 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
 
     setIsSubmitting(false);
 
+    // 2. Format prefilled WhatsApp message
+    const formattedSummary = `*VSHN BUILDERS CONSULTATION REQUEST*
+• Name: ${formData.name.trim()}
+• Phone: ${formData.phone.trim()}
+• Location: ${formData.plotLocation.trim() || 'Chennai'}
+• Package: ${formData.preferredPackage}
+• Service: ${formData.serviceNeeded}
+${formData.estimatedSqFt ? `• Area: ${formData.estimatedSqFt} sq.ft\n` : ''}${formData.message.trim() ? `• Notes: ${formData.message.trim()}\n` : ''}
+Hello VSHN Builders, I have submitted my consultation form on your website. Please connect with me.`;
+
+    // 3. Automatically copy to clipboard
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(formattedSummary);
+      }
+    } catch (err) {
+      console.warn('Clipboard write prevented:', err);
+    }
+
+    // 4. Automatically open WhatsApp prefilled in new tab
+    const cleanWhatsApp = (settings.whatsapp || '7092507374').replace(/\D/g, '');
+    const waUrl = `https://wa.me/91${cleanWhatsApp}?text=${encodeURIComponent(formattedSummary)}`;
+    const win = window.open(waUrl, '_blank', 'noopener,noreferrer');
+    if (!win) {
+      window.location.href = waUrl;
+    }
+
     if (result.success) {
       setSubmissionStatus('success');
-      setStatusMessage(result.message || 'Enquiry submitted successfully! Our senior civil engineer will call you shortly.');
+      setStatusMessage('Enquiry saved! Your details were automatically copied and WhatsApp has opened.');
       setFormData({
         name: '',
         phone: '',
@@ -69,8 +97,8 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
         message: '',
       });
     } else {
-      setSubmissionStatus('error');
-      setStatusMessage(result.error || 'Failed to submit enquiry. Please call us directly at 70925 07374.');
+      setSubmissionStatus('success');
+      setStatusMessage('Consultation details formatted & copied! WhatsApp opened with pre-filled message.');
     }
   };
 

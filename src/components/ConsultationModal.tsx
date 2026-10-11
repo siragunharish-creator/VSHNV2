@@ -35,6 +35,8 @@ export const ConsultationModal: React.FC<ConsultationModalProps> = ({
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [statusMsg, setStatusMsg] = useState('');
 
+  const [copiedNotification, setCopiedNotification] = useState(false);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,6 +50,7 @@ export const ConsultationModal: React.FC<ConsultationModalProps> = ({
     setIsSubmitting(true);
     setStatus('idle');
 
+    // 1. Save consultation enquiry
     const res = await submitContactForm({
       name: formData.name.trim(),
       phone: formData.phone.trim(),
@@ -61,18 +64,56 @@ export const ConsultationModal: React.FC<ConsultationModalProps> = ({
 
     setIsSubmitting(false);
 
+    // 2. Format prefilled WhatsApp message
+    const formattedSummary = `*VSHN BUILDERS CONSULTATION REQUEST*
+• Name: ${formData.name.trim()}
+• Phone: ${formData.phone.trim()}
+• Location: ${formData.plotLocation.trim() || 'Chennai'}
+• Package: ${formData.preferredPackage}
+• Service: ${formData.serviceNeeded}
+${formData.estimatedSqFt ? `• Area: ${formData.estimatedSqFt} sq.ft\n` : ''}${formData.message.trim() ? `• Notes: ${formData.message.trim()}\n` : ''}
+Hello VSHN Builders, I have requested a free consultation on your website. Please connect with me.`;
+
+    // 3. Automatically copy to clipboard
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(formattedSummary);
+        setCopiedNotification(true);
+      }
+    } catch (err) {
+      console.warn('Clipboard write prevented:', err);
+    }
+
+    // 4. Automatically open WhatsApp prefilled in new tab
+    const cleanWhatsApp = (settings.whatsapp || '7092507374').replace(/\D/g, '');
+    const waUrl = `https://wa.me/91${cleanWhatsApp}?text=${encodeURIComponent(formattedSummary)}`;
+    
+    // Trigger redirect
+    const win = window.open(waUrl, '_blank', 'noopener,noreferrer');
+    if (!win) {
+      // Fallback in case popup was blocked by browser
+      window.location.href = waUrl;
+    }
+
     if (res.success) {
       setStatus('success');
-      setStatusMsg(res.message || 'Thank you! We will call you within 2 business hours.');
+      setStatusMsg(res.message || 'Consultation enquiry saved! Details copied to clipboard & WhatsApp opened.');
     } else {
-      setStatus('error');
-      setStatusMsg(res.error || 'Failed to submit. Please call us directly at 70925 07374.');
+      setStatus('success'); // Still allow visitor to proceed since WhatsApp opened
+      setStatusMsg('Enquiry formatted and copied! Connect with our engineer directly on WhatsApp.');
     }
   };
 
-  const whatsappText = encodeURIComponent(
-    `Hello VSHN Builders, I am requesting a consultation for a home in Chennai (${formData.plotLocation || 'Chennai'}). Package: ${formData.preferredPackage}. Please connect with me.`
-  );
+  const whatsappMessageText = `*VSHN BUILDERS CONSULTATION REQUEST*
+• Name: ${formData.name.trim() || 'Client'}
+• Phone: ${formData.phone.trim()}
+• Location: ${formData.plotLocation.trim() || 'Chennai'}
+• Package: ${formData.preferredPackage}
+• Service: ${formData.serviceNeeded}
+${formData.estimatedSqFt ? `• Area: ${formData.estimatedSqFt} sq.ft\n` : ''}
+Hello VSHN Builders, I am requesting a consultation for my home construction.`;
+
+  const whatsappText = encodeURIComponent(whatsappMessageText);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-in fade-in">

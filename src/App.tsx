@@ -12,6 +12,8 @@ import { PackagesSection } from './components/PackagesSection.tsx';
 import { AboutSection } from './components/AboutSection.tsx';
 import { ProcessSection } from './components/ProcessSection.tsx';
 import { TestimonialsSection } from './components/TestimonialsSection.tsx';
+import { GallerySection } from './components/GallerySection.tsx';
+import { VideoSocialSection } from './components/VideoSocialSection.tsx';
 import { FaqSection } from './components/FaqSection.tsx';
 import { ContactSection } from './components/ContactSection.tsx';
 import { Footer } from './components/Footer.tsx';
@@ -98,6 +100,12 @@ function MainSite() {
 
         {/* Client Testimonials */}
         <TestimonialsSection />
+
+        {/* Gallery Section */}
+        <GallerySection />
+
+        {/* YouTube & Instagram Social Media Player Section */}
+        <VideoSocialSection />
 
         {/* FAQ Accordion */}
         <FaqSection />

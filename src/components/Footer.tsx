@@ -134,22 +134,24 @@ export const Footer: React.FC<FooterProps> = ({
               <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
             </button>
 
-            {/* Footer Admin Button */}
+            {/* Footer Admin Button - Icon Only */}
             {isAuthenticated ? (
               <button
                 onClick={onOpenAdminConsole}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 hover:text-emerald-300 transition-colors"
+                className="p-1.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 hover:text-emerald-300 transition-colors cursor-pointer"
+                title="Admin Console"
+                aria-label="Admin Console"
               >
                 <Shield className="w-3.5 h-3.5" />
-                <span>Admin Console</span>
               </button>
             ) : (
               <button
                 onClick={onOpenAdminLogin}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-stone-900 border border-stone-800 text-stone-400 hover:text-stone-200 transition-colors"
+                className="p-1.5 rounded bg-stone-900 border border-stone-800 text-stone-400 hover:text-amber-400 transition-colors cursor-pointer"
+                title="Admin Login"
+                aria-label="Admin Login"
               >
                 <Shield className="w-3.5 h-3.5" />
-                <span>Admin Portal</span>
               </button>
             )}
           </div>

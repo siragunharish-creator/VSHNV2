@@ -29,6 +29,16 @@ import {
   FileCheck2,
   Layers,
   MapPin,
+  Menu,
+  Search,
+  Filter,
+  CheckCircle,
+  EyeOff,
+  Shield,
+  Play,
+  Video,
+  Instagram,
+  Youtube,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useContent } from '../context/ContentContext.tsx';
@@ -50,6 +60,7 @@ type AdminTab =
   | 'services'
   | 'packages'
   | 'media'
+  | 'featuredMedia'
   | 'about'
   | 'contact'
   | 'testimonials'
@@ -76,6 +87,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
   } = useContent();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Media Library filters & search
+  const [mediaCategoryFilter, setMediaCategoryFilter] = useState<string>('all');
+  const [mediaStatusFilter, setMediaStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [mediaSearchTerm, setMediaSearchTerm] = useState<string>('');
+
   const [editableData, setEditableData] = useState<WebsiteContent>(() => {
     return JSON.parse(JSON.stringify(draftContent || content));
   });
@@ -100,6 +118,57 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [editingPackage, setEditingPackage] = useState<PricingPackage | null>(null);
   const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
+  const [editingMediaItem, setEditingMediaItem] = useState<{ id: string; title: string; altText: string } | null>(null);
+
+  // Update Media Title / Name
+  const handleUpdateMediaTitle = (id: string, newTitle: string, newAltText?: string) => {
+    setEditableData((prev) => ({
+      ...prev,
+      mediaLibrary: (prev.mediaLibrary || []).map((m) =>
+        m.id === id ? { ...m, title: newTitle.trim() || m.title, altText: newAltText?.trim() || m.altText || newTitle } : m
+      ),
+    }));
+    showToast('success', 'Image title and details updated in draft.');
+  };
+
+  // Media management functions (Active/Inactive toggle, Category change, Delete)
+  const handleToggleMediaActive = (id: string) => {
+    setEditableData((prev) => {
+      const updatedList = (prev.mediaLibrary || []).map((m) => {
+        if (m.id === id) {
+          const currentIsActive = m.isActive !== false;
+          const nextActive = !currentIsActive;
+          return {
+            ...m,
+            isActive: nextActive,
+            status: nextActive ? ('active' as const) : ('inactive' as const),
+          };
+        }
+        return m;
+      });
+      return { ...prev, mediaLibrary: updatedList };
+    });
+    showToast('success', 'Image status changed successfully.');
+  };
+
+  const handleUpdateMediaCategory = (id: string, newCategory: string) => {
+    setEditableData((prev) => ({
+      ...prev,
+      mediaLibrary: (prev.mediaLibrary || []).map((m) =>
+        m.id === id ? { ...m, category: newCategory as any } : m
+      ),
+    }));
+    showToast('success', 'Image category updated.');
+  };
+
+  const handleDeleteMediaItem = async (id: string) => {
+    setEditableData((prev) => ({
+      ...prev,
+      mediaLibrary: (prev.mediaLibrary || []).filter((m) => m.id !== id),
+    }));
+    await deleteMedia(id);
+    showToast('success', 'Media item removed from library.');
+  };
 
   // Helper notification
   const showToast = (type: 'success' | 'error', message: string) => {
@@ -177,6 +246,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
             title: file.name,
             altText: file.name,
             category: uploadCategory,
+            isActive: true,
+            status: 'active',
             uploadedAt: new Date().toISOString(),
             sizeBytes: file.size,
           },
@@ -217,6 +288,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
     { id: 'services', label: 'Services Manager', icon: <Wrench className="w-4 h-4" /> },
     { id: 'packages', label: 'Construction Packages', icon: <BadgePercent className="w-4 h-4" /> },
     { id: 'media', label: 'Media Library & Uploads', icon: <ImageIcon className="w-4 h-4" /> },
+    { id: 'featuredMedia', label: 'YouTube & Instagram Videos', icon: <Play className="w-4 h-4" /> },
     { id: 'about', label: 'About Us & Values', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'contact', label: 'Contact Details & SEO', icon: <PhoneCall className="w-4 h-4" /> },
     { id: 'testimonials', label: 'Testimonials / Reviews', icon: <MessageSquareQuote className="w-4 h-4" /> },
@@ -227,16 +299,27 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100 overflow-hidden font-sans">
       {/* Top Bar */}
-      <header className="h-16 shrink-0 bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 px-4 sm:px-6 flex items-center justify-between gap-4 z-20">
-        <div className="flex items-center gap-3">
+      <header className="h-16 shrink-0 bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 z-20">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Mobile Sidebar Hamburger Button */}
+          <button
+            onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+            className="lg:hidden p-2 rounded-lg text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-700 flex items-center gap-1.5 cursor-pointer"
+            title="Toggle Sections Menu"
+            aria-label="Toggle navigation sidebar"
+          >
+            <Menu className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <span className="hidden sm:inline text-xs font-semibold">Sections</span>
+          </button>
+
           <VshnLogo size="sm" />
-          <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 border-l border-stone-200 dark:border-stone-700 pl-3">
-            Admin Console
-          </span>
+          <div className="hidden sm:flex items-center justify-center p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" title="Admin">
+            <Shield className="w-4 h-4" />
+          </div>
         </div>
 
         {/* Action Controls & Notifications */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Notification Toast */}
           {statusNotification && (
             <div
@@ -251,11 +334,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
             </div>
           )}
 
-          {/* MANDATORY FEATURE ONE: Global Light/Dark Theme Toggle in Admin */}
+          {/* Global Light/Dark Theme Toggle in Admin */}
           <button
             onClick={toggleTheme}
             aria-label="Toggle theme"
-            className="p-2 rounded-lg text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800 transition-colors"
+            className="p-2 rounded-lg text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800 transition-colors cursor-pointer"
             title="Toggle Light / Dark Mode"
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
@@ -264,37 +347,37 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
           {/* View Website Live */}
           <button
             onClick={onPreviewSite}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 border border-stone-200 dark:border-stone-700 transition-colors"
+            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 border border-stone-200 dark:border-stone-700 transition-colors cursor-pointer"
           >
             <Eye className="w-3.5 h-3.5" />
-            <span>View Public Site</span>
+            <span className="hidden md:inline">View Public Site</span>
           </button>
 
           {/* Save Draft */}
           <button
             onClick={handleSaveDraft}
             disabled={isSaving}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-stone-800 dark:text-stone-200 bg-stone-200/80 dark:bg-stone-800 hover:bg-stone-300 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold text-stone-800 dark:text-stone-200 bg-stone-200/80 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 transition-colors cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
-            <span>Save Draft</span>
+            <span className="hidden xs:inline">Save Draft</span>
           </button>
 
           {/* Publish Live */}
           <button
             onClick={handlePublish}
             disabled={isSaving || isPublishing}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-xs transition-colors cursor-pointer disabled:opacity-70"
+            className="inline-flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-xs transition-colors cursor-pointer disabled:opacity-70"
           >
             {isPublishing ? (
               <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Publishing Live...</span>
+                <span className="hidden sm:inline">Publishing...</span>
               </>
             ) : (
               <>
                 <Upload className="w-3.5 h-3.5" />
-                <span>Publish Live</span>
+                <span>Publish</span>
               </>
             )}
           </button>
@@ -306,7 +389,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
               onClose();
             }}
             aria-label="Logout"
-            className="p-2 rounded-lg text-stone-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+            className="p-2 rounded-lg text-stone-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
             title="Logout Admin"
           >
             <LogOut className="w-4 h-4" />
@@ -316,7 +399,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
           <button
             onClick={onClose}
             aria-label="Close Admin Console"
-            className="p-2 rounded-lg text-stone-500 hover:text-stone-900 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            className="p-2 rounded-lg text-stone-500 hover:text-stone-900 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -324,9 +407,38 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
       </header>
 
       {/* Main Body with Sidebar & Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <aside className="w-64 shrink-0 bg-white dark:bg-stone-900 border-r border-stone-200 dark:border-stone-800 flex flex-col justify-between overflow-y-auto">
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Mobile Drawer Backdrop */}
+        {mobileSidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-stone-950/60 backdrop-blur-xs lg:hidden animate-in fade-in"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        )}
+
+        {/* Sidebar Drawer on Mobile / Permanent on Desktop */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-white dark:bg-stone-900 border-r border-stone-200 dark:border-stone-800 flex flex-col justify-between overflow-y-auto transition-transform duration-300 lg:static lg:w-64 lg:shrink-0 lg:translate-x-0 ${
+            mobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+          }`}
+        >
+          {/* Mobile Sidebar Header */}
+          <div className="lg:hidden p-4 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <VshnLogo size="sm" />
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-600">
+                Navigation
+              </span>
+            </div>
+            <button
+              onClick={() => setMobileSidebarOpen(false)}
+              className="p-1.5 rounded-lg text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800"
+              aria-label="Close navigation"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
           <div className="p-3 space-y-1">
             <div className="px-3 py-2 text-[10px] uppercase font-bold tracking-wider text-stone-400">
               Content Navigation
@@ -336,8 +448,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id as AdminTab)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-lg text-left transition-colors ${
+                  onClick={() => {
+                    setActiveTab(item.id as AdminTab);
+                    setMobileSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-lg text-left transition-colors cursor-pointer ${
                     isActive
                       ? 'bg-amber-500 text-stone-950 font-bold shadow-xs'
                       : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-white'
@@ -356,8 +471,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
               Logged in as <strong className="text-stone-800 dark:text-stone-200">harish</strong>
             </div>
             <button
-              onClick={() => setIsResetModalOpen(true)}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-700 transition-colors"
+              onClick={() => {
+                setMobileSidebarOpen(false);
+                setIsResetModalOpen(true);
+              }}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-700 transition-colors cursor-pointer"
             >
               <RefreshCw className="w-3 h-3" />
               <span>Reset Demo Defaults</span>
@@ -366,8 +484,24 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-stone-50 dark:bg-stone-950">
-          <div className="max-w-6xl mx-auto space-y-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 bg-stone-50 dark:bg-stone-950">
+          <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
+            {/* Mobile Section Switcher Bar */}
+            <div className="lg:hidden flex items-center justify-between p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-xs shadow-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] uppercase tracking-wider text-stone-400 font-bold">Section:</span>
+                <span className="font-bold text-stone-900 dark:text-stone-100">
+                  {navItems.find((i) => i.id === activeTab)?.label}
+                </span>
+              </div>
+              <button
+                onClick={() => setMobileSidebarOpen(true)}
+                className="px-2.5 py-1 rounded-md bg-amber-500 text-stone-950 font-bold text-[11px] shadow-xs cursor-pointer flex items-center gap-1"
+              >
+                <Menu className="w-3 h-3" />
+                <span>Switch</span>
+              </button>
+            </div>
             {/* ================= 1. DASHBOARD ================= */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
@@ -916,12 +1050,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                         </div>
 
                         <div>
-                          <label className="font-bold block mb-1">Cover Image URL</label>
-                          <input
-                            type="text"
+                          <ImagePickerField
+                            label="Project Architectural Cover Image"
                             value={editingProject.coverImage}
-                            onChange={(e) => setEditingProject({ ...editingProject, coverImage: e.target.value })}
-                            className="w-full p-2 rounded border bg-stone-50 dark:bg-stone-800 font-mono"
+                            onChange={(newUrl) => setEditingProject({ ...editingProject, coverImage: newUrl })}
+                            category="exterior"
+                            aspectRatio="video"
+                            helperText="Select or upload the main exterior architectural photo for this project."
                           />
                         </div>
 
@@ -1032,8 +1167,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
 
                 {/* Edit Service Modal */}
                 {editingService && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-xs">
-                    <div className="bg-white dark:bg-stone-900 rounded-2xl max-w-lg w-full p-6 space-y-4">
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-xs overflow-y-auto">
+                    <div className="bg-white dark:bg-stone-900 rounded-2xl max-w-lg w-full p-6 space-y-4 my-auto max-h-[90vh] overflow-y-auto">
                       <div className="flex justify-between items-center">
                         <h3 className="text-base font-bold">Edit Service</h3>
                         <button onClick={() => setEditingService(null)} className="p-1 text-stone-400">
@@ -1051,6 +1186,16 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                             className="w-full p-2 rounded border bg-stone-50 dark:bg-stone-800"
                           />
                         </div>
+
+                        {/* Service Cover Image Picker */}
+                        <ImagePickerField
+                          label="Service Architectural Cover Photo"
+                          value={editingService.coverImage}
+                          onChange={(newUrl) => setEditingService({ ...editingService, coverImage: newUrl })}
+                          category="services"
+                          aspectRatio="video"
+                          helperText="Select or upload the high-resolution cover photo for this construction service."
+                        />
 
                         <div>
                           <label className="font-bold block mb-1">Starting Price Tag</label>
@@ -1214,103 +1359,592 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
             )}
 
             {/* ================= 6. MEDIA LIBRARY & UPLOADS ================= */}
-            {activeTab === 'media' && (
-              <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-bold font-serif text-stone-900 dark:text-stone-100">
-                      Persistent Media &amp; Image Library
-                    </h2>
-                    <p className="text-xs text-stone-500 mt-1">
-                      Upload photos from your computer. Files are stored persistently in the server backend.
-                    </p>
+            {activeTab === 'media' && (() => {
+              const library = editableData.mediaLibrary || [];
+              const totalCount = library.length;
+              const activeCount = library.filter((m) => m.isActive !== false).length;
+              const inactiveCount = library.filter((m) => m.isActive === false).length;
+
+              const filteredMedia = library.filter((item) => {
+                // Category filter
+                if (mediaCategoryFilter !== 'all' && item.category !== mediaCategoryFilter) {
+                  return false;
+                }
+                // Status filter
+                const isItemActive = item.isActive !== false;
+                if (mediaStatusFilter === 'active' && !isItemActive) return false;
+                if (mediaStatusFilter === 'inactive' && isItemActive) return false;
+                // Search term
+                if (mediaSearchTerm.trim()) {
+                  const q = mediaSearchTerm.toLowerCase();
+                  const matchesTitle = item.title?.toLowerCase().includes(q);
+                  const matchesUrl = item.url?.toLowerCase().includes(q);
+                  const matchesCategory = item.category?.toLowerCase().includes(q);
+                  if (!matchesTitle && !matchesUrl && !matchesCategory) return false;
+                }
+                return true;
+              });
+
+              return (
+                <div className="space-y-6">
+                  {/* Header & Stats Banner */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-bold font-serif text-stone-900 dark:text-stone-100">
+                        Persistent Media &amp; Image Library
+                      </h2>
+                      <p className="text-xs text-stone-500 mt-1">
+                        Manage all website images. Toggle Active/Inactive visibility, change categories, or delete images.
+                      </p>
+                    </div>
+
+                    {/* Stats Badges */}
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-stone-200 dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-300 dark:border-stone-700">
+                        Total: <strong>{totalCount}</strong>
+                      </span>
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                        Active: <strong>{activeCount}</strong>
+                      </span>
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                        Inactive: <strong>{inactiveCount}</strong>
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Upload Controls */}
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={uploadCategory}
-                      onChange={(e) => setUploadCategory(e.target.value as any)}
-                      className="p-2 text-xs rounded-lg border bg-white dark:bg-stone-800"
-                    >
-                      <option value="exterior">Exterior</option>
-                      <option value="interior">Interior</option>
-                      <option value="floor_plan">Floor Plan</option>
-                      <option value="3d_render">3D Design</option>
-                      <option value="branding">Branding</option>
-                    </select>
+                  {/* Filter & Upload Toolbar */}
+                  <div className="p-4 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-xs space-y-4">
+                    <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                      {/* Search & Filters */}
+                      <div className="flex flex-wrap items-center gap-2.5 flex-1">
+                        {/* Search Input */}
+                        <div className="relative min-w-[200px] flex-1 sm:flex-initial">
+                          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                          <input
+                            type="text"
+                            value={mediaSearchTerm}
+                            onChange={(e) => setMediaSearchTerm(e.target.value)}
+                            placeholder="Search images by name or URL..."
+                            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs focus:ring-2 focus:ring-amber-500 outline-none"
+                          />
+                        </div>
 
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      accept="image/*"
-                      className="hidden"
-                    />
+                        {/* Category Filter */}
+                        <div className="flex items-center gap-1.5">
+                          <label className="text-[11px] font-bold text-stone-500 whitespace-nowrap">Category:</label>
+                          <select
+                            value={mediaCategoryFilter}
+                            onChange={(e) => setMediaCategoryFilter(e.target.value)}
+                            className="p-1.5 text-xs rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 font-semibold cursor-pointer"
+                          >
+                            <option value="all">All Categories ({totalCount})</option>
+                            <option value="exterior">Exterior</option>
+                            <option value="interior">Interior</option>
+                            <option value="floor_plan">Floor Plan</option>
+                            <option value="3d_render">3D Design</option>
+                            <option value="site_work">Site Work</option>
+                            <option value="branding">Branding</option>
+                            <option value="services">Services</option>
+                            <option value="projects">Projects</option>
+                          </select>
+                        </div>
 
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs shadow-xs cursor-pointer"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>{isUploading ? 'Uploading...' : 'Upload Image from Computer'}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Media Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {editableData.mediaLibrary.map((item) => (
-                    <div
-                      key={item.id}
-                      className="group relative bg-white dark:bg-stone-900 rounded-xl overflow-hidden border border-stone-200 dark:border-stone-800 shadow-xs flex flex-col"
-                    >
-                      <div className="h-32 bg-stone-100 dark:bg-stone-800 overflow-hidden relative">
-                        <img src={item.url} alt={item.title} className="w-full h-full object-cover" />
-                        <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-stone-950/75 text-[9px] text-white">
-                          {item.category}
+                        {/* Status Filter */}
+                        <div className="flex items-center gap-1.5">
+                          <label className="text-[11px] font-bold text-stone-500 whitespace-nowrap">Status:</label>
+                          <select
+                            value={mediaStatusFilter}
+                            onChange={(e) => setMediaStatusFilter(e.target.value as any)}
+                            className="p-1.5 text-xs rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 font-semibold cursor-pointer"
+                          >
+                            <option value="all">All Statuses ({totalCount})</option>
+                            <option value="active">Active Only ({activeCount})</option>
+                            <option value="inactive">Inactive Only ({inactiveCount})</option>
+                          </select>
                         </div>
                       </div>
 
-                      <div className="p-2.5 text-xs flex-1 flex flex-col justify-between">
-                        <div>
-                          <p className="font-semibold text-stone-800 dark:text-stone-200 truncate">{item.title}</p>
-                          <span className="text-[10px] text-stone-400 block font-mono truncate">{item.url}</span>
+                      {/* Upload Controls */}
+                      <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-stone-100 dark:border-stone-800">
+                        <select
+                          value={uploadCategory}
+                          onChange={(e) => setUploadCategory(e.target.value as any)}
+                          className="p-2 text-xs rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 font-semibold cursor-pointer"
+                        >
+                          <option value="exterior">Upload as: Exterior</option>
+                          <option value="interior">Upload as: Interior</option>
+                          <option value="floor_plan">Upload as: Floor Plan</option>
+                          <option value="3d_render">Upload as: 3D Design</option>
+                          <option value="site_work">Upload as: Site Work</option>
+                          <option value="branding">Upload as: Branding</option>
+                          <option value="services">Upload as: Services</option>
+                          <option value="projects">Upload as: Projects</option>
+                        </select>
+
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileUpload}
+                          accept="image/*"
+                          className="hidden"
+                        />
+
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploading}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs shadow-xs cursor-pointer active:scale-95 disabled:opacity-70 whitespace-nowrap"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>{isUploading ? 'Uploading...' : 'Upload Image'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Media Grid */}
+                  {filteredMedia.length === 0 ? (
+                    <div className="p-12 text-center rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-3">
+                      <ImageIcon className="w-10 h-10 mx-auto text-stone-300 dark:text-stone-600" />
+                      <p className="text-sm font-semibold text-stone-600 dark:text-stone-400">
+                        No images found matching your selected filters.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setMediaCategoryFilter('all');
+                          setMediaStatusFilter('all');
+                          setMediaSearchTerm('');
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 text-xs font-bold text-stone-700 dark:text-stone-300 cursor-pointer"
+                      >
+                        Reset All Filters
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {filteredMedia.map((item) => {
+                        const isItemActive = item.isActive !== false;
+                        return (
+                          <div
+                            key={item.id}
+                            className={`group relative bg-white dark:bg-stone-900 rounded-xl overflow-hidden border shadow-xs flex flex-col transition-all duration-200 ${
+                              isItemActive
+                                ? 'border-stone-200 dark:border-stone-800'
+                                : 'border-stone-300 dark:border-stone-700 opacity-75 bg-stone-50/50 dark:bg-stone-950/50'
+                            }`}
+                          >
+                            {/* Image Thumbnail */}
+                            <div className="h-40 bg-stone-100 dark:bg-stone-800 overflow-hidden relative group">
+                              <img
+                                src={item.url}
+                                alt={item.title}
+                                onError={(e) => {
+                                  e.currentTarget.src = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&auto=format&fit=crop';
+                                }}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+
+                              {/* Active Status Badge on Image */}
+                              <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleMediaActive(item.id)}
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md cursor-pointer flex items-center gap-1 transition-all ${
+                                    isItemActive
+                                      ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                      : 'bg-stone-700 text-stone-200 hover:bg-stone-800'
+                                  }`}
+                                  title="Click to toggle Active / Inactive"
+                                >
+                                  {isItemActive ? (
+                                    <>
+                                      <CheckCircle className="w-3 h-3 text-emerald-200" />
+                                      <span>Active</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <EyeOff className="w-3 h-3 text-stone-400" />
+                                      <span>Inactive</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+
+                              {/* Category Badge */}
+                              <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-stone-950/80 backdrop-blur-xs text-[10px] font-bold text-amber-300 uppercase tracking-wide">
+                                {item.category || 'general'}
+                              </div>
+                            </div>
+
+                            {/* Card Details */}
+                            <div className="p-3 text-xs flex-1 flex flex-col justify-between space-y-3">
+                              <div>
+                                <div className="flex items-center justify-between gap-1 mb-1">
+                                  <p className="font-bold text-stone-800 dark:text-stone-200 truncate flex-1" title={item.title}>
+                                    {item.title}
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingMediaItem({ id: item.id, title: item.title, altText: item.altText || '' })}
+                                    className="p-1 rounded text-stone-400 hover:text-amber-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                                    title="Edit image name / title"
+                                  >
+                                    <Edit className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                <span className="text-[10px] text-stone-400 block font-mono truncate mt-0.5">
+                                  {item.url}
+                                </span>
+                              </div>
+
+                              {/* Category Selector Dropdown (Update option per image) */}
+                              <div>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1">
+                                  Change Category:
+                                </label>
+                                <select
+                                  value={item.category || 'exterior'}
+                                  onChange={(e) => handleUpdateMediaCategory(item.id, e.target.value)}
+                                  className="w-full p-1.5 text-xs rounded-md border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-medium cursor-pointer"
+                                >
+                                  <option value="exterior">Exterior</option>
+                                  <option value="interior">Interior</option>
+                                  <option value="floor_plan">Floor Plan</option>
+                                  <option value="3d_render">3D Design</option>
+                                  <option value="site_work">Site Work</option>
+                                  <option value="branding">Branding</option>
+                                  <option value="services">Services</option>
+                                  <option value="projects">Projects</option>
+                                </select>
+                              </div>
+
+                              {/* Card Actions Footer */}
+                              <div className="pt-2 flex items-center justify-between border-t border-stone-100 dark:border-stone-800">
+                                {/* Toggle Active/Inactive Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleMediaActive(item.id)}
+                                  className={`text-[11px] font-bold px-2 py-1 rounded transition-colors cursor-pointer ${
+                                    isItemActive
+                                      ? 'text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                                      : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                                  }`}
+                                >
+                                  {isItemActive ? 'Set Inactive' : 'Set Active'}
+                                </button>
+
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(item.url);
+                                      showToast('success', 'Image URL copied to clipboard!');
+                                    }}
+                                    className="p-1 rounded text-stone-500 hover:text-amber-600 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
+                                    title="Copy URL"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteMediaItem(item.id)}
+                                    className="p-1 rounded text-stone-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                    title="Delete Image"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* Edit Image Modal */}
+                  {editingMediaItem && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-xs animate-in fade-in">
+                      <div className="bg-white dark:bg-stone-900 rounded-2xl max-w-md w-full border border-stone-200 dark:border-stone-800 p-6 shadow-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                            <Edit className="w-4 h-4 text-amber-500" />
+                            <span>Edit Image Details</span>
+                          </h3>
+                          <button
+                            type="button"
+                            onClick={() => setEditingMediaItem(null)}
+                            className="p-1 rounded-lg text-stone-400 hover:text-stone-900 dark:hover:text-white"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
                         </div>
 
-                        <div className="pt-2 flex items-center justify-between border-t border-stone-100 dark:border-stone-800 mt-2">
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(item.url);
-                              showToast('success', 'Image URL copied to clipboard!');
-                            }}
-                            className="text-[11px] font-bold text-amber-600 hover:underline"
-                          >
-                            Copy URL
-                          </button>
+                        <div className="space-y-3 text-xs">
+                          <div>
+                            <label className="block font-bold text-stone-800 dark:text-stone-200 mb-1">
+                              Image Title / Name *
+                            </label>
+                            <input
+                              type="text"
+                              value={editingMediaItem.title}
+                              onChange={(e) => setEditingMediaItem({ ...editingMediaItem, title: e.target.value })}
+                              placeholder="e.g. Modern Villa Front Elevation"
+                              className="w-full p-2.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 font-semibold"
+                            />
+                          </div>
 
+                          <div>
+                            <label className="block font-bold text-stone-800 dark:text-stone-200 mb-1">
+                              Alt Text / Description
+                            </label>
+                            <input
+                              type="text"
+                              value={editingMediaItem.altText}
+                              onChange={(e) => setEditingMediaItem({ ...editingMediaItem, altText: e.target.value })}
+                              placeholder="e.g. Contemporary architectural villa in Chennai"
+                              className="w-full p-2.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pt-3 border-t flex justify-end gap-2">
                           <button
-                            onClick={async () => {
-                              await deleteMedia(item.id);
-                              setEditableData({
-                                ...editableData,
-                                mediaLibrary: editableData.mediaLibrary.filter((m) => m.id !== item.id),
-                              });
-                              showToast('success', 'Media item removed from library.');
-                            }}
-                            className="text-stone-400 hover:text-rose-600"
-                            title="Delete"
+                            type="button"
+                            onClick={() => setEditingMediaItem(null)}
+                            className="px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700 text-xs font-semibold"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleUpdateMediaTitle(editingMediaItem.id, editingMediaItem.title, editingMediaItem.altText);
+                              setEditingMediaItem(null);
+                            }}
+                            className="px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs"
+                          >
+                            Save Name Changes
                           </button>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
+
+            {/* ================= 7. YOUTUBE & INSTAGRAM VIDEOS ================= */}
+            {activeTab === 'featuredMedia' && (() => {
+              const currentMedia = editableData.settings.featuredMedia || {
+                youtubeVideoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                instagramPostUrl: 'https://www.instagram.com/p/DF2N8c5z0fL/',
+                title: 'Site Walkthrough & Construction Highlights',
+                subtitle: 'Watch our live Chennai site video tours and follow our architectural craft on YouTube & Instagram.',
+              };
+
+              // Extract preview IDs
+              const ytMatch = currentMedia.youtubeVideoUrl?.match(/[?&]v=([a-zA-Z0-9_-]{11})|youtu\.be\/([a-zA-Z0-9_-]{11})|embed\/([a-zA-Z0-9_-]{11})/);
+              const ytId = ytMatch ? ytMatch[1] || ytMatch[2] || ytMatch[3] : null;
+
+              const igMatch = currentMedia.instagramPostUrl?.match(/instagram\.com\/(?:p|reel|tv)\/([a-zA-Z0-9_-]+)/);
+              const igCode = igMatch ? igMatch[1] : null;
+
+              return (
+                <div className="bg-white dark:bg-stone-900 rounded-xl p-6 sm:p-8 border border-stone-200 dark:border-stone-800 space-y-6">
+                  <div>
+                    <h2 className="text-xl font-bold font-serif text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                      <Play className="w-5 h-5 text-amber-500" />
+                      <span>YouTube &amp; Instagram Video Manager</span>
+                    </h2>
+                    <p className="text-xs text-stone-500 mt-1">
+                      Paste any YouTube video/Shorts link and Instagram Reel/Post link. The website will automatically embed and play them!
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* YouTube Video Config */}
+                    <div className="p-5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-950/50 space-y-4">
+                      <div className="flex items-center gap-2 text-red-600 font-bold text-sm">
+                        <Youtube className="w-5 h-5" />
+                        <span>YouTube Video Link</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                          YouTube Video URL
+                        </label>
+                        <input
+                          type="text"
+                          value={currentMedia.youtubeVideoUrl || ''}
+                          onChange={(e) =>
+                            setEditableData({
+                              ...editableData,
+                              settings: {
+                                ...editableData.settings,
+                                featuredMedia: {
+                                  ...currentMedia,
+                                  youtubeVideoUrl: e.target.value,
+                                },
+                              },
+                            })
+                          }
+                          placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
+                          className="w-full p-2.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 font-mono text-xs"
+                        />
+                        <span className="text-[11px] text-stone-400 mt-1 block">
+                          Paste any YouTube link, standard video, or YouTube Short.
+                        </span>
+                      </div>
+
+                      {/* Live Preview */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
+                          Live Video Player Preview:
+                        </label>
+                        <div className="aspect-video w-full rounded-lg overflow-hidden bg-stone-900 border border-stone-700 flex items-center justify-center">
+                          {ytId ? (
+                            <iframe
+                              src={`https://www.youtube.com/embed/${ytId}?rel=0`}
+                              title="YouTube Preview"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              className="w-full h-full border-0"
+                            />
+                          ) : (
+                            <div className="p-4 text-center text-xs text-stone-400">
+                              Paste a valid YouTube URL above to preview video playback.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Instagram Post/Reel Config */}
+                    <div className="p-5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-950/50 space-y-4">
+                      <div className="flex items-center gap-2 text-pink-600 font-bold text-sm">
+                        <Instagram className="w-5 h-5" />
+                        <span>Instagram Post / Reel Link</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                          Instagram Post or Reel URL
+                        </label>
+                        <input
+                          type="text"
+                          value={currentMedia.instagramPostUrl || ''}
+                          onChange={(e) =>
+                            setEditableData({
+                              ...editableData,
+                              settings: {
+                                ...editableData.settings,
+                                featuredMedia: {
+                                  ...currentMedia,
+                                  instagramPostUrl: e.target.value,
+                                },
+                              },
+                            })
+                          }
+                          placeholder="https://www.instagram.com/p/... or https://www.instagram.com/reel/..."
+                          className="w-full p-2.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 font-mono text-xs"
+                        />
+                        <span className="text-[11px] text-stone-400 mt-1 block">
+                          Paste any public Instagram post, Reel, or IGTV URL.
+                        </span>
+                      </div>
+
+                      {/* Live Preview */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
+                          Live Instagram Preview:
+                        </label>
+                        <div className="h-64 w-full rounded-lg overflow-hidden bg-stone-900 border border-stone-700 flex items-center justify-center">
+                          {igCode ? (
+                            <iframe
+                              src={`https://www.instagram.com/p/${igCode}/embed/captioned/`}
+                              title="Instagram Preview"
+                              className="w-full h-full border-0"
+                              scrolling="no"
+                              allowTransparency
+                            />
+                          ) : (
+                            <div className="p-4 text-center text-xs text-stone-400">
+                              Paste a valid Instagram URL above to preview the post or Reel.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section Headings */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-stone-200 dark:border-stone-800 text-xs">
+                    <div>
+                      <label className="block font-bold text-stone-800 dark:text-stone-200 mb-1">
+                        Showcase Title
+                      </label>
+                      <input
+                        type="text"
+                        value={currentMedia.title || ''}
+                        onChange={(e) =>
+                          setEditableData({
+                            ...editableData,
+                            settings: {
+                              ...editableData.settings,
+                              featuredMedia: {
+                                ...currentMedia,
+                                title: e.target.value,
+                              },
+                            },
+                          })
+                        }
+                        className="w-full p-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-stone-800 dark:text-stone-200 mb-1">
+                        Showcase Subtitle
+                      </label>
+                      <input
+                        type="text"
+                        value={currentMedia.subtitle || ''}
+                        onChange={(e) =>
+                          setEditableData({
+                            ...editableData,
+                            settings: {
+                              ...editableData.settings,
+                              featuredMedia: {
+                                ...currentMedia,
+                                subtitle: e.target.value,
+                              },
+                            },
+                          })
+                        }
+                        className="w-full p-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveDraft}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 hover:bg-stone-200"
+                    >
+                      Save Draft
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePublish}
+                      className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
+                    >
+                      Publish Live
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ================= 7. ABOUT US & VALUES ================= */}
             {activeTab === 'about' && (

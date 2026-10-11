@@ -21,6 +21,12 @@ export interface SiteSettings {
     threads: string;
     facebook?: string;
   };
+  featuredMedia: {
+    youtubeVideoUrl: string; // e.g. https://www.youtube.com/watch?v=... or https://youtu.be/...
+    instagramPostUrl: string; // e.g. https://www.instagram.com/p/... or reel
+    title?: string;
+    subtitle?: string;
+  };
   businessHours: string;
   hero: {
     headline: string;
@@ -137,7 +143,9 @@ export interface MediaItem {
   url: string;
   title: string;
   altText: string;
-  category: 'exterior' | 'interior' | 'floor_plan' | '3d_render' | 'site_work' | 'branding';
+  category: 'exterior' | 'interior' | 'floor_plan' | '3d_render' | 'site_work' | 'branding' | 'services' | 'projects' | string;
+  isActive?: boolean; // Default is true (active)
+  status?: 'active' | 'inactive';
   uploadedAt: string;
   sizeBytes?: number;
 }

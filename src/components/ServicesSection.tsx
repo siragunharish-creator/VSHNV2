@@ -7,10 +7,29 @@ interface ServicesSectionProps {
   onOpenConsultationModal: (serviceName?: string) => void;
 }
 
+// Guaranteed architectural fallback images if remote URLs fail or are blocked
+const ARCHITECTURAL_FALLBACKS: Record<string, string> = {
+  'serv-1': 'https://images.unsplash.com/photo-1541888946425-d0fbb186156f?q=80&w=1200&auto=format&fit=crop',
+  'serv-2': 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=1200&auto=format&fit=crop',
+  'serv-3': 'https://images.unsplash.com/photo-1600585152220-90363fe7e115?q=80&w=1200&auto=format&fit=crop',
+  default: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1200&auto=format&fit=crop',
+};
+
 export const ServicesSection: React.FC<ServicesSectionProps> = ({ onOpenConsultationModal }) => {
   const { content } = useContent();
   const { services, settings } = content;
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, serviceId: string) => {
+    const target = e.currentTarget;
+    const fallback = ARCHITECTURAL_FALLBACKS[serviceId] || ARCHITECTURAL_FALLBACKS.default;
+    if (target.src !== fallback) {
+      target.src = fallback;
+    } else {
+      // If even that fails, use an inline SVG architectural graphic
+      target.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400" fill="%231c1917"><rect width="600" height="400" fill="%23292524"/><text x="50%" y="45%" text-anchor="middle" fill="%23d97706" font-family="sans-serif" font-weight="bold" font-size="20">VSHN BUILDERS CHENNAI</text><text x="50%" y="58%" text-anchor="middle" fill="%23a8a29e" font-family="sans-serif" font-size="14">Architectural &amp; Civil Engineering</text></svg>`;
+    }
+  };
 
   return (
     <section id="services" className="py-20 bg-white dark:bg-stone-900 border-b border-stone-200/80 dark:border-stone-800/80">
@@ -37,11 +56,11 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onOpenConsulta
               {/* Cover Image */}
               <div className="relative h-48 sm:h-52 overflow-hidden bg-stone-200 dark:bg-stone-800">
                 <img
-                  src={service.coverImage}
+                  src={service.coverImage || ARCHITECTURAL_FALLBACKS[service.id] || ARCHITECTURAL_FALLBACKS.default}
                   alt={service.title}
+                  onError={(e) => handleImageError(e, service.id)}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
-                  referrerPolicy="no-referrer"
                 />
                 {service.startingPrice && (
                   <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded bg-stone-900/85 backdrop-blur-xs text-[11px] font-bold text-amber-400">
@@ -75,7 +94,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onOpenConsulta
                   <button
                     type="button"
                     onClick={() => setSelectedService(service)}
-                    className="text-xs font-semibold text-stone-800 dark:text-stone-200 hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-1 transition-colors"
+                    className="text-xs font-semibold text-stone-800 dark:text-stone-200 hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-1 transition-colors cursor-pointer"
                   >
                     <span>View Details</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -84,7 +103,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onOpenConsulta
                   <button
                     type="button"
                     onClick={() => onOpenConsultationModal(service.title)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 transition-colors shadow-xs"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 transition-colors shadow-xs cursor-pointer active:scale-95"
                   >
                     <span>Enquire</span>
                     <ArrowRight className="w-3 h-3" />
@@ -103,15 +122,16 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onOpenConsulta
             <button
               onClick={() => setSelectedService(null)}
               aria-label="Close modal"
-              className="absolute top-4 right-4 p-2 rounded-lg text-stone-400 hover:text-stone-900 dark:hover:text-white bg-stone-100 dark:bg-stone-800 transition-colors"
+              className="absolute top-4 right-4 p-2 rounded-lg text-stone-400 hover:text-stone-900 dark:hover:text-white bg-stone-100 dark:bg-stone-800 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="relative h-48 sm:h-64 rounded-xl overflow-hidden mb-6 -mx-2 sm:-mx-4 mt-2">
+            <div className="relative h-48 sm:h-64 rounded-xl overflow-hidden mb-6 -mx-2 sm:-mx-4 mt-2 bg-stone-200 dark:bg-stone-800">
               <img
-                src={selectedService.coverImage}
+                src={selectedService.coverImage || ARCHITECTURAL_FALLBACKS[selectedService.id] || ARCHITECTURAL_FALLBACKS.default}
                 alt={selectedService.title}
+                onError={(e) => handleImageError(e, selectedService.id)}
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent flex items-end p-6">
@@ -176,7 +196,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onOpenConsulta
                     setSelectedService(null);
                     onOpenConsultationModal(title);
                   }}
-                  className="flex-1 py-3 px-4 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-sm text-center shadow-md transition-colors"
+                  className="flex-1 py-3 px-4 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-sm text-center shadow-md transition-colors cursor-pointer"
                 >
                   Book Consultation For This Service
                 </button>
@@ -186,7 +206,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onOpenConsulta
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="py-3 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm text-center transition-colors"
+                  className="py-3 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm text-center transition-colors flex items-center justify-center"
                 >
                   WhatsApp Enquiry
                 </a>

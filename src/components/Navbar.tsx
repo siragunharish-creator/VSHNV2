@@ -37,6 +37,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     { label: 'Cost Calculator', href: '#calculator' },
     { label: 'Projects', href: '#projects' },
     { label: 'Packages', href: '#packages' },
+    { label: 'Gallery', href: '#gallery' },
+    { label: 'Videos', href: '#media-showcase' },
     { label: 'Contact', href: '#contact' },
   ];
 
@@ -88,24 +90,24 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
-            {/* MANDATORY FEATURE TWO: Clearly Visible Admin Button */}
+            {/* Admin Action Button - Icon Only */}
             {isAuthenticated ? (
               <button
                 onClick={onOpenAdminConsole}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                title="Open Admin Console"
+                className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
+                title="Admin Console"
+                aria-label="Admin Console"
               >
-                <Shield className="w-3.5 h-3.5" />
-                <span>Admin Console</span>
+                <Shield className="w-4 h-4" />
               </button>
             ) : (
               <button
                 onClick={onOpenAdminLogin}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg text-stone-700 dark:text-stone-300 hover:text-stone-950 dark:hover:text-white bg-stone-100 hover:bg-stone-200/90 dark:bg-stone-900 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                className="p-2 rounded-lg text-stone-700 dark:text-stone-300 hover:text-stone-950 dark:hover:text-white bg-stone-100 hover:bg-stone-200/90 dark:bg-stone-900 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
                 title="Admin Login"
+                aria-label="Admin Login"
               >
-                <Shield className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                <span>Admin</span>
+                <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               </button>
             )}
 
@@ -165,29 +167,34 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
 
-            {isAuthenticated ? (
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenAdminConsole();
-                }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-emerald-600 text-white font-semibold text-sm shadow-sm"
-              >
-                <Shield className="w-4 h-4" />
-                Go to Admin Console
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenAdminLogin();
-                }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-stone-100 dark:bg-stone-900 text-stone-800 dark:text-stone-200 font-semibold text-sm border border-stone-200 dark:border-stone-800"
-              >
-                <Shield className="w-4 h-4 text-amber-600" />
-                Admin Portal Login
-              </button>
-            )}
+            <div className="flex items-center justify-between px-3 py-2 bg-stone-50 dark:bg-stone-900/60 rounded-lg">
+              <span className="text-xs font-medium text-stone-600 dark:text-stone-400">Admin Session</span>
+              {isAuthenticated ? (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAdminConsole();
+                  }}
+                  className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer"
+                  title="Admin Console"
+                  aria-label="Admin Console"
+                >
+                  <Shield className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAdminLogin();
+                  }}
+                  className="p-2 rounded-lg text-amber-600 dark:text-amber-400 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 shadow-xs transition-all cursor-pointer"
+                  title="Admin Login"
+                  aria-label="Admin Login"
+                >
+                  <Shield className="w-4 h-4" />
+                </button>
+              )}
+            </div>
 
             <a
               href={`tel:${content.settings.phone.replace(/\s+/g, '')}`}
