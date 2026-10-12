@@ -31,9 +31,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenConsultationModal }) => {
           <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold tracking-wide uppercase text-amber-400 mb-4 flex-wrap">
             <span>{hero.locationKicker || 'Chennai & Tamil Nadu'}</span>
             <span aria-hidden="true" className="text-amber-500/60">·</span>
-            <span>{hero.yearsInConstructionText || `${settings.experienceYears || 12} Years In Construction`}</span>
+            <span>{hero.yearsInConstructionText || `${settings.experienceYears || 20} Years In Construction`}</span>
             <span aria-hidden="true" className="text-amber-500/60">·</span>
-            <span>{hero.foundersExpText || `${settings.foundersExperienceYears || 20}+ Yrs Founders' Exp`}</span>
+            <span>{hero.foundersExpText || `${settings.foundersExperienceYears || 24}+ Yrs Founders' Exp`}</span>
           </div>
 
           {/* Main Headline */}
@@ -81,7 +81,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenConsultationModal }) => {
             </div>
             <div>
               <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                {hero.startingPackageRate || '₹2,250'}
+                {hero.startingPackageRate || '₹2,350'}
               </div>
               <p className="text-xs text-stone-300 mt-0.5">Starting Package / sq.ft</p>
             </div>

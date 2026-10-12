@@ -105,7 +105,7 @@ app.get('/api/content', (_req: express.Request, res: express.Response) => {
 });
 
 // 3. Contact Submissions (Public)
-app.post('/api/contact', (req: express.Request, res: express.Response) => {
+app.post('/api/contact', async (req: express.Request, res: express.Response) => {
   const { name, phone, email, plotLocation, serviceNeeded, estimatedSqFt, preferredPackage, message } = req.body;
 
   if (!name || !phone) {
@@ -120,7 +120,7 @@ app.post('/api/contact', (req: express.Request, res: express.Response) => {
   }
 
   try {
-    const submission = db.addEnquiry({
+    const submission = await db.addEnquiry({
       name: String(name).trim(),
       phone: cleanPhone,
       email: email ? String(email).trim() : undefined,
@@ -170,10 +170,10 @@ app.post('/api/admin/save-content', requireAdminAuth, (req: express.Request, res
 });
 
 // Dedicated Instant YouTube & Instagram Links Update (Immediate Persistence)
-app.post('/api/admin/save-media-links', requireAdminAuth, (req: express.Request, res: express.Response) => {
+app.post('/api/admin/save-media-links', requireAdminAuth, async (req: express.Request, res: express.Response) => {
   try {
     const { youtubeVideoUrl, instagramPostUrl, youtubeSocial, instagramSocial, title, subtitle } = req.body;
-    const updated = db.updateMediaLinks(
+    const updated = await db.updateMediaLinks(
       {
         youtubeVideoUrl,
         instagramPostUrl,

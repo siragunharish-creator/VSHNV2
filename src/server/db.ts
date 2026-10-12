@@ -2,7 +2,15 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { initialWebsiteContent } from './defaultData.ts';
-import { WebsiteContent, ContactSubmission, ActivityLog } from '../shared/types.ts';
+import { WebsiteContent, ContactSubmission, ActivityLog, SiteSettings } from '../shared/types.ts';
+import {
+  loadContentFromSupabase,
+  upsertContentToSupabase,
+  saveEnquiryToSupabase,
+  loadEnquiriesFromSupabase,
+  checkSupabaseConnection,
+  setSupabaseKey,
+} from './supabase.ts';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const TMP_DATA_DIR = path.resolve('/tmp', 'vshn-data');
@@ -127,6 +135,70 @@ export class DatabaseService {
     this.draftContent = this.loadDraft();
     this.enquiries = this.loadEnquiries();
     this.activityLogs = this.loadActivity();
+
+    // Trigger Supabase sync asynchronously
+    this.initSupabaseSync().catch((err) => {
+      console.warn('[DB] Supabase initial sync deferred:', err);
+    });
+  }
+
+  public async initSupabaseSync(): Promise<void> {
+    try {
+      const remote = await loadContentFromSupabase();
+      if (remote && remote.published) {
+        console.log('[DB] Authoritative content loaded from Supabase');
+        this.content = {
+          ...initialWebsiteContent,
+          ...remote.published,
+          settings: {
+            ...initialWebsiteContent.settings,
+            ...remote.published.settings,
+            featuredMedia: {
+              ...initialWebsiteContent.settings.featuredMedia,
+              ...(remote.published.settings?.featuredMedia || {}),
+            },
+            socials: {
+              ...initialWebsiteContent.settings.socials,
+              ...(remote.published.settings?.socials || {}),
+            },
+            hero: {
+              ...initialWebsiteContent.settings.hero,
+              ...(remote.published.settings?.hero || {}),
+            },
+            aboutSection: {
+              ...initialWebsiteContent.settings.aboutSection,
+              ...(remote.published.settings?.aboutSection || {}),
+            },
+            sectionVisibility: {
+              ...initialWebsiteContent.settings.sectionVisibility,
+              ...(remote.published.settings?.sectionVisibility || {}),
+            },
+            seo: {
+              ...initialWebsiteContent.settings.seo,
+              ...(remote.published.settings?.seo || {}),
+            },
+          },
+        };
+        if (remote.draft) {
+          this.draftContent = remote.draft;
+        }
+        this.saveContentDirect(this.content);
+      } else {
+        const status = await checkSupabaseConnection();
+        if (status.connected && status.hasKey && status.tableExists !== false) {
+          await upsertContentToSupabase(this.content, true, 'system');
+          console.log('[DB] Seeded initial content to Supabase');
+        }
+      }
+
+      const remoteEnquiries = await loadEnquiriesFromSupabase();
+      if (remoteEnquiries && remoteEnquiries.length > 0) {
+        this.enquiries = remoteEnquiries;
+        safeWriteFile(ENQUIRIES_FILE, JSON.stringify(this.enquiries, null, 2));
+      }
+    } catch (err) {
+      console.warn('[DB] Supabase sync error:', err);
+    }
   }
 
   private loadContent(): WebsiteContent {
@@ -353,7 +425,7 @@ export class DatabaseService {
   }
 
   // Save content
-  public saveContent(content: WebsiteContent, isPublish: boolean, user: string): void {
+  public async saveContent(content: WebsiteContent, isPublish: boolean, user: string): Promise<void> {
     if (isPublish) {
       this.content = content;
       this.draftContent = null;
@@ -380,10 +452,17 @@ export class DatabaseService {
       safeWriteFile(DRAFT_FILE, JSON.stringify(content, null, 2));
       this.logActivity('Draft Saved', 'Administrator saved work in progress draft', user);
     }
+
+    // Persist to Supabase
+    try {
+      await upsertContentToSupabase(content, isPublish, user);
+    } catch (err: any) {
+      console.warn('[DB] Supabase async save notice:', err.message);
+    }
   }
 
   // Explicit YouTube & Instagram Links update that applies immediately to live website and persists
-  public updateMediaLinks(
+  public async updateMediaLinks(
     data: {
       youtubeVideoUrl?: string;
       instagramPostUrl?: string;
@@ -393,7 +472,7 @@ export class DatabaseService {
       subtitle?: string;
     },
     user: string
-  ): WebsiteContent {
+  ): Promise<WebsiteContent> {
     const featured = {
       ...(this.content.settings.featuredMedia || initialWebsiteContent.settings.featuredMedia),
     };
@@ -446,11 +525,18 @@ export class DatabaseService {
       `Updated YouTube (${featured.youtubeVideoUrl || 'default'}) & Instagram (${featured.instagramPostUrl || 'default'}) links`,
       user
     );
+
+    try {
+      await upsertContentToSupabase(this.content, true, user);
+    } catch (err: any) {
+      console.warn('[DB] Supabase media links sync notice:', err.message);
+    }
+
     return this.content;
   }
 
   // Update Settings (Branding, Hero, About, Contact, SEO, Section Visibility)
-  public updateSettings(partialSettings: Partial<SiteSettings>, user: string, isPublish: boolean = true): WebsiteContent {
+  public async updateSettings(partialSettings: Partial<SiteSettings>, user: string, isPublish: boolean = true): Promise<WebsiteContent> {
     const updatedSettings: SiteSettings = {
       ...this.content.settings,
       ...partialSettings,
@@ -500,11 +586,17 @@ export class DatabaseService {
       this.logActivity('Settings Draft Saved', 'Administrator saved website settings draft', user);
     }
 
+    try {
+      await upsertContentToSupabase(this.content, isPublish, user);
+    } catch (err: any) {
+      console.warn('[DB] Supabase settings sync notice:', err.message);
+    }
+
     return this.content;
   }
 
   // Update or Create FAQ
-  public updateFaq(faq: { id?: string; question: string; answer: string; category?: string }, user: string): WebsiteContent {
+  public async updateFaq(faq: { id?: string; question: string; answer: string; category?: string }, user: string): Promise<WebsiteContent> {
     const id = faq.id || 'faq-' + Date.now();
     const existingIndex = this.content.faqs.findIndex((f) => f.id === id);
     const item = {
@@ -534,11 +626,18 @@ export class DatabaseService {
     }
     this.saveContentDirect(this.content);
     this.logActivity('FAQ Updated', `Updated FAQ: "${item.question.slice(0, 40)}"`, user);
+
+    try {
+      await upsertContentToSupabase(this.content, true, user);
+    } catch (err: any) {
+      console.warn('[DB] Supabase FAQ sync notice:', err.message);
+    }
+
     return this.content;
   }
 
   // Delete FAQ
-  public deleteFaq(id: string, user: string): WebsiteContent {
+  public async deleteFaq(id: string, user: string): Promise<WebsiteContent> {
     this.content = {
       ...this.content,
       faqs: this.content.faqs.filter((f) => f.id !== id),
@@ -552,11 +651,18 @@ export class DatabaseService {
     }
     this.saveContentDirect(this.content);
     this.logActivity('FAQ Deleted', `Deleted FAQ ${id}`, user);
+
+    try {
+      await upsertContentToSupabase(this.content, true, user);
+    } catch (err: any) {
+      console.warn('[DB] Supabase FAQ delete sync notice:', err.message);
+    }
+
     return this.content;
   }
 
   // Master 1-Click Publish All
-  public publishAll(user: string): WebsiteContent {
+  public async publishAll(user: string): Promise<WebsiteContent> {
     if (this.draftContent) {
       this.content = this.draftContent;
       this.draftContent = null;
@@ -568,6 +674,13 @@ export class DatabaseService {
       if (fs.existsSync(tmpDraft)) fs.unlinkSync(tmpDraft);
     } catch {}
     this.logActivity('All Content Published Live', 'Administrator published all draft changes to live website', user);
+
+    try {
+      await upsertContentToSupabase(this.content, true, user);
+    } catch (err: any) {
+      console.warn('[DB] Supabase publishAll sync notice:', err.message);
+    }
+
     return this.content;
   }
 
@@ -595,7 +708,7 @@ export class DatabaseService {
   }
 
   // Enquiries
-  public addEnquiry(data: Omit<ContactSubmission, 'id' | 'createdAt' | 'status'>): ContactSubmission {
+  public async addEnquiry(data: Omit<ContactSubmission, 'id' | 'createdAt' | 'status'>): Promise<ContactSubmission> {
     const newEnq: ContactSubmission = {
       id: 'enq-' + Date.now(),
       ...data,
@@ -605,6 +718,13 @@ export class DatabaseService {
     this.enquiries = [newEnq, ...this.enquiries];
     safeWriteFile(ENQUIRIES_FILE, JSON.stringify(this.enquiries, null, 2));
     this.logActivity('New Customer Enquiry', `Consultation request from ${data.name} (${data.phone})`, 'visitor');
+
+    try {
+      await saveEnquiryToSupabase(newEnq);
+    } catch (err: any) {
+      console.warn('[DB] Supabase enquiry sync notice:', err.message);
+    }
+
     return newEnq;
   }
 
@@ -614,6 +734,7 @@ export class DatabaseService {
     item.status = status;
     if (notes !== undefined) item.adminNotes = notes;
     safeWriteFile(ENQUIRIES_FILE, JSON.stringify(this.enquiries, null, 2));
+    saveEnquiryToSupabase(item).catch(console.warn);
     return true;
   }
 
@@ -633,7 +754,32 @@ export class DatabaseService {
       if (fs.existsSync(DRAFT_FILE)) fs.unlinkSync(DRAFT_FILE);
     } catch {}
     this.logActivity('Reset Website Data', 'Reset all content to official VSHN Builders defaults', user);
+    upsertContentToSupabase(this.content, true, user).catch(console.warn);
     return this.content;
+  }
+
+  public async checkSupabaseStatus() {
+    return checkSupabaseConnection();
+  }
+
+  public setSupabasePublishableKey(key: string) {
+    const res = setSupabaseKey(key);
+    if (res.success) {
+      this.initSupabaseSync().catch(console.warn);
+    }
+    return res;
+  }
+
+  public async syncToSupabase(): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await upsertContentToSupabase(this.content, true, 'harish');
+      if (res.success) {
+        return { success: true, message: 'Website content successfully synchronized with Supabase database.' };
+      }
+      return { success: false, message: res.error || 'Failed to sync with Supabase.' };
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   }
 
   public logActivity(action: string, details: string, user: string): void {

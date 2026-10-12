@@ -23,11 +23,23 @@ VSHN BUILDERS is a full-stack, production-grade web application with a client-fa
    - Initial demo credentials:
      - **Username**: `harish`
      - **Password**: `vshn1996`
-   - Complete content management for Home hero, Projects, Services, Packages (Super ₹2,250, Deluxe ₹2,450, Premium ₹2,650), Testimonials, Media library uploads, and Customer Consultation enquiries.
+   - Complete content management for Home hero, Projects, Services, Packages (Super ₹2,350, Deluxe ₹2,450, Premium ₹2,650), Testimonials, Media library uploads, and Customer Consultation enquiries.
 
 ---
 
-## 3. Environment Variables
+## 3. Supabase Cloud Database & Storage Integration
+- **Project URL**: `https://gybfpnothqoptffhmont.supabase.co`
+- **Database Tables**:
+  - `website_content`: Stores published & draft content JSON with stable primary key `'vshn_live_content'`.
+  - `contact_submissions`: Stores customer consultation enquiries.
+  - `activity_logs`: Audit trail of all administrative updates.
+  - `vshn-media`: Storage bucket for permanent images.
+- **SQL Migration**: Run `supabase-migration.sql` in the Supabase SQL Editor.
+- **Keys**: Configure publishable key via `SUPABASE_ANON_KEY` or `VITE_SUPABASE_ANON_KEY` or through the Admin Console's "Supabase Cloud Database & Storage" panel.
+
+---
+
+## 4. Environment Variables
 Configure the following in `.env` (see `.env.example`):
 ```env
 # Port for Express server
@@ -35,6 +47,12 @@ PORT=3000
 
 # Node Environment
 NODE_ENV=production
+
+# Supabase Configuration
+SUPABASE_URL="https://gybfpnothqoptffhmont.supabase.co"
+SUPABASE_ANON_KEY="your-supabase-publishable-key"
+VITE_SUPABASE_URL="https://gybfpnothqoptffhmont.supabase.co"
+VITE_SUPABASE_ANON_KEY="your-supabase-publishable-key"
 
 # Initial Admin Credentials (optional overrides)
 ADMIN_USERNAME=harish

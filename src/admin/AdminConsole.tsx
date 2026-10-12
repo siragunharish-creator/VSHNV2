@@ -39,6 +39,8 @@ import {
   Video,
   Instagram,
   Youtube,
+  Database,
+  Copy,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useContent } from '../context/ContentContext.tsx';
@@ -65,7 +67,8 @@ type AdminTab =
   | 'contact'
   | 'testimonials'
   | 'enquiries'
-  | 'security';
+  | 'security'
+  | 'supabase';
 
 export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSite }) => {
   const { user, logout, changePassword } = useAuth();
@@ -85,10 +88,20 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
     updateMediaLinks,
     isSaving,
     saveMessage,
+    supabaseStatus,
+    checkSupabase,
+    updateSupabaseConfig,
+    syncSupabaseNow,
   } = useContent();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Supabase states
+  const [supabaseKeyInput, setSupabaseKeyInput] = useState('');
+  const [isUpdatingSupabase, setIsUpdatingSupabase] = useState(false);
+  const [supabaseSyncMessage, setSupabaseSyncMessage] = useState<string | null>(null);
+  const [copiedMigration, setCopiedMigration] = useState(false);
 
   // State for direct Media Links save
   const [isSavingMediaLinks, setIsSavingMediaLinks] = useState(false);
@@ -338,6 +351,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'supabase', label: 'Supabase Database', icon: <Database className="w-4 h-4 text-emerald-500" /> },
     { id: 'homepage', label: 'Home Page Editor', icon: <Home className="w-4 h-4" /> },
     { id: 'projects', label: 'Projects & Portfolio', icon: <FolderKanban className="w-4 h-4" /> },
     { id: 'services', label: 'Services Manager', icon: <Wrench className="w-4 h-4" /> },
@@ -610,6 +624,40 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                   </div>
                 </div>
 
+                {/* Supabase Cloud Database Persistence Status Banner */}
+                <div className="p-5 rounded-xl bg-gradient-to-r from-emerald-950/20 via-stone-900/40 to-stone-900/60 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                      <Database className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-stone-900 dark:text-stone-100">
+                          Supabase Permanent Database & Storage
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                            supabaseStatus?.connected
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          }`}
+                        >
+                          {supabaseStatus?.connected ? 'Connected' : 'Configured (Project Ready)'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-400 mt-0.5">
+                        Project URL: <span className="font-mono text-emerald-400">https://gybfpnothqoptffhmont.supabase.co</span> · All saves, pricing, statistics & leads sync to Supabase.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('supabase')}
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shrink-0"
+                  >
+                    Manage Supabase
+                  </button>
+                </div>
+
                 {/* Quick Action Shortcuts */}
                 <div className="p-6 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-xs">
                   <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100 mb-4 uppercase tracking-wider text-xs">
@@ -737,7 +785,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                       </label>
                       <input
                         type="text"
-                        value={editableData.settings.hero.yearsInConstructionText ?? '12 Years In Construction'}
+                        value={editableData.settings.hero.yearsInConstructionText ?? '20 Years In Construction'}
                         onChange={(e) =>
                           setEditableData({
                             ...editableData,
@@ -747,7 +795,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                             },
                           })
                         }
-                        placeholder="12 Years In Construction"
+                        placeholder="20 Years In Construction"
                         className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs font-medium"
                       />
                     </div>
@@ -758,7 +806,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                       </label>
                       <input
                         type="text"
-                        value={editableData.settings.hero.foundersExpText ?? "20+ Yrs Founders' Exp"}
+                        value={editableData.settings.hero.foundersExpText ?? "24+ Yrs Founders' Exp"}
                         onChange={(e) =>
                           setEditableData({
                             ...editableData,
@@ -768,7 +816,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                             },
                           })
                         }
-                        placeholder="20+ Yrs Founders' Exp"
+                        placeholder="24+ Yrs Founders' Exp"
                         className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs font-medium"
                       />
                     </div>
@@ -983,7 +1031,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                         </label>
                         <input
                           type="text"
-                          value={editableData.settings.hero.startingPackageRate ?? '₹2,250'}
+                          value={editableData.settings.hero.startingPackageRate ?? '₹2,350'}
                           onChange={(e) =>
                             setEditableData({
                               ...editableData,
@@ -993,7 +1041,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                               },
                             })
                           }
-                          placeholder="₹2,250"
+                          placeholder="₹2,350"
                           className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-bold font-mono text-amber-600"
                         />
                       </div>
@@ -1207,7 +1255,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                               onChange={(e) => setEditingProject({ ...editingProject, packageUsed: e.target.value as any })}
                               className="w-full p-2 rounded border bg-stone-50 dark:bg-stone-800"
                             >
-                              <option value="Super">Super (₹2,250)</option>
+                              <option value="Super">Super (₹2,350)</option>
                               <option value="Deluxe">Deluxe (₹2,450)</option>
                               <option value="Premium">Premium (₹2,650)</option>
                             </select>
@@ -2797,6 +2845,250 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                     Update Admin Password
                   </button>
                 </form>
+              </div>
+            )}
+
+            {/* ================= 12. SUPABASE CLOUD DATABASE ================= */}
+            {activeTab === 'supabase' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold font-serif text-stone-900 dark:text-stone-100 flex items-center gap-2.5">
+                    <Database className="w-6 h-6 text-emerald-500" />
+                    <span>Supabase Cloud Database & Storage</span>
+                  </h2>
+                  <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+                    Direct integration with Supabase for permanent cross-browser synchronization, persistent homepage content, pricing records, customer enquiries, and media assets.
+                  </p>
+                </div>
+
+                {/* Connection Status Card */}
+                <div className="p-6 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone-200 dark:border-stone-800">
+                    <div>
+                      <span className="text-[11px] uppercase font-bold text-stone-400 tracking-wider block">
+                        Supabase Project URL
+                      </span>
+                      <span className="text-sm font-mono font-bold text-stone-900 dark:text-stone-100">
+                        https://gybfpnothqoptffhmont.supabase.co
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                          supabaseStatus?.connected
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                            : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                        }`}
+                      >
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            supabaseStatus?.connected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                          }`}
+                        />
+                        <span>{supabaseStatus?.connected ? 'Connected & Active' : 'Setup / Pending Key'}</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-lg bg-stone-50 dark:bg-stone-800/60 border border-stone-200 dark:border-stone-700/60 text-xs">
+                    <span className="font-bold text-stone-700 dark:text-stone-300 block mb-0.5">
+                      Diagnostic Message:
+                    </span>
+                    <span className="text-stone-600 dark:text-stone-400">
+                      {supabaseStatus?.message ||
+                        'Checking Supabase connection status... Click "Test Connection" to check.'}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await checkSupabase();
+                        showToast('success', 'Supabase status refreshed.');
+                      }}
+                      className="px-3.5 py-2 rounded-lg text-xs font-bold bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 text-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Test Connection</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setSupabaseSyncMessage('Synchronizing data with Supabase...');
+                        const res = await syncSupabaseNow();
+                        setSupabaseSyncMessage(res.message);
+                        if (res.success) {
+                          showToast('success', 'Synced successfully with Supabase!');
+                        } else {
+                          showToast('error', res.message);
+                        }
+                        setTimeout(() => setSupabaseSyncMessage(null), 5000);
+                      }}
+                      className="px-3.5 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Sync All Content to Supabase</span>
+                    </button>
+
+                    {supabaseSyncMessage && (
+                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 pl-2">
+                        {supabaseSyncMessage}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Key Configuration Card */}
+                <div className="p-6 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-xs space-y-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                      Supabase Publishable / Anon Key
+                    </h3>
+                    <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                      Enter the publishable anon key from your Supabase dashboard (Settings &rarr; API). Never enter your service_role or DB password here.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        value={supabaseKeyInput}
+                        onChange={(e) => setSupabaseKeyInput(e.target.value)}
+                        placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                        className="flex-1 px-3 py-2.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-mono"
+                      />
+                      <button
+                        type="button"
+                        disabled={isUpdatingSupabase || !supabaseKeyInput.trim()}
+                        onClick={async () => {
+                          setIsUpdatingSupabase(true);
+                          const res = await updateSupabaseConfig(supabaseKeyInput.trim());
+                          setIsUpdatingSupabase(false);
+                          if (res.success) {
+                            showToast('success', 'Supabase publishable key saved and verified!');
+                            setSupabaseKeyInput('');
+                          } else {
+                            showToast('error', res.error || 'Failed to save Supabase key.');
+                          }
+                        }}
+                        className="px-4 py-2.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-stone-950 transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        {isUpdatingSupabase ? 'Connecting...' : 'Save & Connect Key'}
+                      </button>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-stone-700 dark:text-stone-300 flex items-start gap-2">
+                      <Shield className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Security & Persistence:</strong> Changes saved via the Admin Console are saved permanently to Supabase with automatic local disk caching for instant failover. When visitors load the site, they receive fresh authoritative data directly with zero browser caching delays.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SQL Migration & RLS Reference */}
+                <div className="p-6 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                        Supabase SQL Migration & RLS Setup
+                      </h3>
+                      <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                        Creates the <code className="text-amber-500 font-mono">website_content</code>, <code className="text-amber-500 font-mono">contact_submissions</code>, and <code className="text-amber-500 font-mono">activity_logs</code> tables with row-level security and the <code className="text-amber-500 font-mono">vshn-media</code> storage bucket.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sql = `-- VSHN BUILDERS SUPABASE MIGRATION
+CREATE TABLE IF NOT EXISTS public.website_content (
+    id TEXT PRIMARY KEY DEFAULT 'current',
+    published_content JSONB NOT NULL,
+    draft_content JSONB,
+    version INT DEFAULT 1,
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    published_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_by TEXT DEFAULT 'harish'
+);
+ALTER TABLE public.website_content ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public can view published website content" ON public.website_content FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Allow content management" ON public.website_content FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.contact_submissions (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    email TEXT,
+    plot_location TEXT,
+    service_needed TEXT,
+    estimated_sq_ft NUMERIC,
+    preferred_package TEXT,
+    budget_range TEXT,
+    message TEXT,
+    status TEXT DEFAULT 'new',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.contact_submissions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public can submit enquiries" ON public.contact_submissions FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Manage enquiries" ON public.contact_submissions FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
+
+INSERT INTO storage.buckets (id, name, public) VALUES ('vshn-media', 'vshn-media', true) ON CONFLICT (id) DO UPDATE SET public = true;
+CREATE POLICY "Public can view media" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'vshn-media');
+CREATE POLICY "Allow upload to media bucket" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'vshn-media');`;
+
+                        navigator.clipboard?.writeText(sql);
+                        setCopiedMigration(true);
+                        showToast('success', 'SQL Migration copied to clipboard!');
+                        setTimeout(() => setCopiedMigration(false), 3000);
+                      }}
+                      className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 text-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>{copiedMigration ? 'Copied!' : 'Copy SQL Migration'}</span>
+                    </button>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-stone-950 text-stone-200 text-[11px] font-mono overflow-x-auto max-h-60 leading-relaxed">
+                    <pre>
+{`-- 1. Run this in your Supabase SQL Editor:
+CREATE TABLE IF NOT EXISTS public.website_content (
+    id TEXT PRIMARY KEY DEFAULT 'current',
+    published_content JSONB NOT NULL,
+    draft_content JSONB,
+    version INT DEFAULT 1,
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    published_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_by TEXT DEFAULT 'harish'
+);
+
+ALTER TABLE public.website_content ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public can view published website content"
+    ON public.website_content FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Allow content management"
+    ON public.website_content FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
+
+-- 2. Consultation Leads:
+CREATE TABLE IF NOT EXISTS public.contact_submissions (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    email TEXT,
+    plot_location TEXT,
+    service_needed TEXT,
+    estimated_sq_ft NUMERIC,
+    preferred_package TEXT,
+    message TEXT,
+    status TEXT DEFAULT 'new',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);`}
+                    </pre>
+                  </div>
+                </div>
               </div>
             )}
           </div>

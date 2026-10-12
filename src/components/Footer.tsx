@@ -17,7 +17,7 @@ export const Footer: React.FC<FooterProps> = ({
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { content } = useContent();
-  const { settings } = content;
+  const { settings, packages } = content;
 
   return (
     <footer className="bg-stone-950 text-white pt-16 pb-12 border-t border-stone-800">
@@ -62,10 +62,20 @@ export const Footer: React.FC<FooterProps> = ({
               <span className="text-[11px] text-stone-400 block uppercase font-bold tracking-wider mb-1.5">
                 Packages Starting Rate
               </span>
-              <div className="flex gap-2 text-xs">
-                <span className="px-2 py-1 rounded bg-stone-900 border border-stone-800">Super ₹2,250</span>
-                <span className="px-2 py-1 rounded bg-stone-900 border border-stone-800">Deluxe ₹2,450</span>
-                <span className="px-2 py-1 rounded bg-stone-900 border border-stone-800">Premium ₹2,650</span>
+              <div className="flex gap-2 text-xs flex-wrap">
+                {packages && packages.length > 0 ? (
+                  packages.map((pkg) => (
+                    <span key={pkg.id} className="px-2 py-1 rounded bg-stone-900 border border-stone-800">
+                      {pkg.name} ₹{pkg.ratePerSqFt.toLocaleString('en-IN')}
+                    </span>
+                  ))
+                ) : (
+                  <>
+                    <span className="px-2 py-1 rounded bg-stone-900 border border-stone-800">Super ₹2,350</span>
+                    <span className="px-2 py-1 rounded bg-stone-900 border border-stone-800">Deluxe ₹2,450</span>
+                    <span className="px-2 py-1 rounded bg-stone-900 border border-stone-800">Premium ₹2,650</span>
+                  </>
+                )}
               </div>
             </div>
           </div>

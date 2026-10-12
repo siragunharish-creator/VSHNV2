@@ -1,5 +1,15 @@
 [
   {
+    "id": "enq-1791823588660",
+    "name": "Suresh Kumar",
+    "phone": "9840199999",
+    "plotLocation": "Anna Nagar, Chennai",
+    "serviceNeeded": "Residential Villa Construction",
+    "message": "Testing enquiry persistence",
+    "status": "new",
+    "createdAt": "2026-10-12T16:46:28.660Z"
+  },
+  {
     "id": "enq-1791509875688",
     "name": "A. Karthik",
     "phone": "9841098765",

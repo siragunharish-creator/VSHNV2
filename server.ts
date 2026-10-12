@@ -4,6 +4,7 @@ import fs from 'fs';
 import multer from 'multer';
 import dotenv from 'dotenv';
 import { db } from './src/server/db.ts';
+import { uploadImageToSupabase } from './src/server/supabase.ts';
 
 dotenv.config();
 
@@ -192,7 +193,7 @@ app.get('/api/content', (_req: Request, res: Response) => {
 });
 
 // 4. Contact Submissions (Public)
-app.post('/api/contact', (req: Request, res: Response) => {
+app.post('/api/contact', async (req: Request, res: Response) => {
   const { name, phone, email, plotLocation, serviceNeeded, estimatedSqFt, preferredPackage, message } = req.body;
 
   if (!name || !phone) {
@@ -207,7 +208,7 @@ app.post('/api/contact', (req: Request, res: Response) => {
   }
 
   try {
-    const submission = db.addEnquiry({
+    const submission = await db.addEnquiry({
       name: String(name).trim(),
       phone: cleanPhone,
       email: email ? String(email).trim() : undefined,
@@ -238,7 +239,7 @@ app.get('/api/admin/data', requireAdminAuth, (_req: Request, res: Response) => {
   }
 });
 
-app.post('/api/admin/save-content', requireAdminAuth, (req: Request, res: Response) => {
+app.post('/api/admin/save-content', requireAdminAuth, async (req: Request, res: Response) => {
   const { content, isPublish } = req.body;
   if (!content) {
     res.status(400).json({ error: 'Content payload is missing.' });
@@ -246,7 +247,7 @@ app.post('/api/admin/save-content', requireAdminAuth, (req: Request, res: Respon
   }
 
   try {
-    db.saveContent(content, Boolean(isPublish), 'harish');
+    await db.saveContent(content, Boolean(isPublish), 'harish');
     const publicContent = db.getPublicContent();
     if (isPublish) {
       broadcastContentUpdate(publicContent);
@@ -262,14 +263,14 @@ app.post('/api/admin/save-content', requireAdminAuth, (req: Request, res: Respon
 });
 
 // Dedicated Settings Update (Branding, Hero, About, Contact, SEO, Section Visibility)
-app.post('/api/admin/update-settings', requireAdminAuth, (req: Request, res: Response) => {
+app.post('/api/admin/update-settings', requireAdminAuth, async (req: Request, res: Response) => {
   try {
     const { settings, isPublish = true } = req.body;
     if (!settings) {
       res.status(400).json({ error: 'Settings payload is required' });
       return;
     }
-    const updated = db.updateSettings(settings, 'harish', Boolean(isPublish));
+    const updated = await db.updateSettings(settings, 'harish', Boolean(isPublish));
     const publicContent = db.getPublicContent();
     if (isPublish) {
       broadcastContentUpdate(publicContent);
@@ -285,10 +286,10 @@ app.post('/api/admin/update-settings', requireAdminAuth, (req: Request, res: Res
 });
 
 // Dedicated Instant YouTube & Instagram Links Update (Immediate Persistence)
-app.post('/api/admin/save-media-links', requireAdminAuth, (req: Request, res: Response) => {
+app.post('/api/admin/save-media-links', requireAdminAuth, async (req: Request, res: Response) => {
   try {
     const { youtubeVideoUrl, instagramPostUrl, youtubeSocial, instagramSocial, title, subtitle } = req.body;
-    const updated = db.updateMediaLinks(
+    const updated = await db.updateMediaLinks(
       {
         youtubeVideoUrl,
         instagramPostUrl,
@@ -312,14 +313,14 @@ app.post('/api/admin/save-media-links', requireAdminAuth, (req: Request, res: Re
 });
 
 // FAQ Management Endpoints
-app.post('/api/admin/save-faq', requireAdminAuth, (req: Request, res: Response) => {
+app.post('/api/admin/save-faq', requireAdminAuth, async (req: Request, res: Response) => {
   try {
     const { id, question, answer, category } = req.body;
     if (!question || !answer) {
       res.status(400).json({ error: 'Question and Answer are required' });
       return;
     }
-    db.updateFaq({ id, question, answer, category }, 'harish');
+    await db.updateFaq({ id, question, answer, category }, 'harish');
     const publicContent = db.getPublicContent();
     broadcastContentUpdate(publicContent);
     res.json({
@@ -332,9 +333,9 @@ app.post('/api/admin/save-faq', requireAdminAuth, (req: Request, res: Response) 
   }
 });
 
-app.delete('/api/admin/faq/:id', requireAdminAuth, (req: Request, res: Response) => {
+app.delete('/api/admin/faq/:id', requireAdminAuth, async (req: Request, res: Response) => {
   try {
-    db.deleteFaq(req.params.id, 'harish');
+    await db.deleteFaq(req.params.id, 'harish');
     const publicContent = db.getPublicContent();
     broadcastContentUpdate(publicContent);
     res.json({
@@ -348,9 +349,9 @@ app.delete('/api/admin/faq/:id', requireAdminAuth, (req: Request, res: Response)
 });
 
 // Master 1-Click Publish All
-app.post('/api/admin/publish-all', requireAdminAuth, (_req: Request, res: Response) => {
+app.post('/api/admin/publish-all', requireAdminAuth, async (_req: Request, res: Response) => {
   try {
-    db.publishAll('harish');
+    await db.publishAll('harish');
     const publicContent = db.getPublicContent();
     broadcastContentUpdate(publicContent);
     res.json({
@@ -363,9 +364,9 @@ app.post('/api/admin/publish-all', requireAdminAuth, (_req: Request, res: Respon
   }
 });
 
-// Image Upload (Multer file or base64) with robust error handling
+// Image Upload (Multer file or base64) with Supabase Storage integration
 app.post('/api/admin/upload', requireAdminAuth, (req: Request, res: Response) => {
-  upload.single('image')(req, res, (err: any) => {
+  upload.single('image')(req, res, async (err: any) => {
     if (err) {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
@@ -383,13 +384,16 @@ app.post('/api/admin/upload', requireAdminAuth, (req: Request, res: Response) =>
       let fileUrl = '';
       let originalName = 'uploaded-image';
       let sizeBytes = 0;
+      let buffer: Buffer | null = null;
+      let mimeType = 'image/jpeg';
 
       if (req.file) {
         fileUrl = `/uploads/${req.file.filename}`;
         originalName = req.file.originalname;
         sizeBytes = req.file.size;
+        mimeType = req.file.mimetype || 'image/jpeg';
+        buffer = fs.readFileSync(req.file.path);
       } else if (req.body.base64) {
-        // Base64 upload fallback
         const base64Data = req.body.base64;
         const matches = base64Data.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
         if (!matches || matches.length !== 3) {
@@ -397,8 +401,9 @@ app.post('/api/admin/upload', requireAdminAuth, (req: Request, res: Response) =>
           return;
         }
         const ext = matches[1].split('/')[1] || 'jpg';
+        mimeType = matches[1] || 'image/jpeg';
         const filename = `upload-${Date.now()}.${ext}`;
-        const buffer = Buffer.from(matches[2], 'base64');
+        buffer = Buffer.from(matches[2], 'base64');
         fs.writeFileSync(path.join(uploadsDir, filename), buffer);
         fileUrl = `/uploads/${filename}`;
         originalName = req.body.name || filename;
@@ -406,6 +411,18 @@ app.post('/api/admin/upload', requireAdminAuth, (req: Request, res: Response) =>
       } else {
         res.status(400).json({ error: 'No image file or base64 data provided.' });
         return;
+      }
+
+      // Try uploading to Supabase Storage bucket 'vshn-media' for permanent cross-deployment storage
+      if (buffer) {
+        try {
+          const sbRes = await uploadImageToSupabase(originalName, buffer, mimeType);
+          if (sbRes.success && sbRes.url) {
+            fileUrl = sbRes.url;
+          }
+        } catch (sbErr) {
+          console.warn('[Server] Supabase storage upload fallback to local URL:', sbErr);
+        }
       }
 
       const title = req.body.title || originalName;
@@ -430,6 +447,36 @@ app.post('/api/admin/upload', requireAdminAuth, (req: Request, res: Response) =>
       res.status(500).json({ error: 'Upload failed: ' + err.message });
     }
   });
+});
+
+// ======================== SUPABASE DATABASE MANAGEMENT ROUTES ========================
+app.get('/api/admin/supabase-status', requireAdminAuth, async (_req: Request, res: Response) => {
+  try {
+    const status = await db.checkSupabaseStatus();
+    res.json(status);
+  } catch (err: any) {
+    res.status(500).json({ connected: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/supabase-config', requireAdminAuth, async (req: Request, res: Response) => {
+  const { publishableKey } = req.body;
+  if (!publishableKey) {
+    res.status(400).json({ error: 'Publishable key is required.' });
+    return;
+  }
+  const result = db.setSupabasePublishableKey(publishableKey);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  const status = await db.checkSupabaseStatus();
+  res.json({ success: true, status });
+});
+
+app.post('/api/admin/supabase-sync', requireAdminAuth, async (_req: Request, res: Response) => {
+  const result = await db.syncToSupabase();
+  res.json(result);
 });
 
 app.delete('/api/admin/media/:id', requireAdminAuth, (req: Request, res: Response) => {

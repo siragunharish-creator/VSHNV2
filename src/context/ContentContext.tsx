@@ -41,6 +41,16 @@ interface ContentContextType {
     title?: string;
     subtitle?: string;
   }) => Promise<{ success: boolean; message?: string; error?: string }>;
+  supabaseStatus: {
+    connected: boolean;
+    projectUrl: string;
+    hasKey: boolean;
+    message: string;
+    tableExists?: boolean;
+  } | null;
+  checkSupabase: () => Promise<void>;
+  updateSupabaseConfig: (key: string) => Promise<{ success: boolean; error?: string }>;
+  syncSupabaseNow: () => Promise<{ success: boolean; message: string }>;
 }
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
@@ -78,15 +88,80 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [supabaseStatus, setSupabaseStatus] = useState<{
+    connected: boolean;
+    projectUrl: string;
+    hasKey: boolean;
+    message: string;
+    tableExists?: boolean;
+  } | null>(null);
 
-  // Fetch content function
+  // Supabase status checker
+  const checkSupabase = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/admin/supabase-status', {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSupabaseStatus(data);
+      }
+    } catch {}
+  }, [token]);
+
+  const updateSupabaseConfig = async (key: string): Promise<{ success: boolean; error?: string }> => {
+    if (!token) return { success: false, error: 'Unauthorized' };
+    try {
+      const res = await fetch('/api/admin/supabase-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ publishableKey: key }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSupabaseStatus(data.status);
+        await refreshContent();
+        return { success: true };
+      }
+      return { success: false, error: data.error || 'Failed to update Supabase key' };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const syncSupabaseNow = async (): Promise<{ success: boolean; message: string }> => {
+    if (!token) return { success: false, message: 'Unauthorized' };
+    try {
+      const res = await fetch('/api/admin/supabase-sync', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        await refreshContent();
+        await checkSupabase();
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.message || data.error || 'Sync failed' };
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  };
+
+  // Fetch content function with cache: 'no-store'
   const refreshContent = useCallback(async () => {
     setIsLoading(true);
     try {
       if (isAuthenticated && token) {
         // Fetch full admin data
         const res = await fetch('/api/admin/data', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}`, 'Cache-Control': 'no-cache' },
+          cache: 'no-store',
         });
         const contentType = res.headers.get('content-type');
         if (res.ok && contentType && contentType.includes('application/json')) {
@@ -105,7 +180,10 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
 
       // Public content fallback
-      const pubRes = await fetch('/api/content');
+      const pubRes = await fetch('/api/content', {
+        headers: { 'Cache-Control': 'no-cache' },
+        cache: 'no-store',
+      });
       const pubType = pubRes.headers.get('content-type');
       if (pubRes.ok && pubType && pubType.includes('application/json')) {
         const pubData = await pubRes.json();
@@ -123,11 +201,14 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     refreshContent();
-  }, [refreshContent]);
+    if (isAuthenticated) {
+      checkSupabase();
+    }
+  }, [refreshContent, isAuthenticated, checkSupabase]);
 
   // Save Draft
   const saveDraft = async (updated: WebsiteContent): Promise<{ success: boolean; error?: string }> => {
-    if (!token) return { success: false, error: 'Unauthorized' };
+    if (!token) return { success: false, error: 'Unauthorized. Please log in as administrator.' };
     setIsSaving(true);
     try {
       const res = await fetch('/api/admin/save-content', {
@@ -138,28 +219,26 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         },
         body: JSON.stringify({ content: updated, isPublish: false }),
       });
-      const contentType = res.headers.get('content-type');
-      if (res.ok && contentType && contentType.includes('application/json')) {
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error || 'Failed to save draft');
+      if (!res.ok) {
+        let errText = 'Failed to save draft';
+        try {
+          const errData = await res.json();
+          errText = errData.error || errData.message || errText;
+        } catch {}
+        throw new Error(errText);
       }
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to save draft');
+
       setDraftContent(updated);
       try {
         localStorage.setItem('vshn_draft_content', JSON.stringify(updated));
       } catch {}
       setSaveMessage('Draft saved successfully');
       setTimeout(() => setSaveMessage(null), 3000);
-      await refreshContent();
       return { success: true };
     } catch (err: any) {
-      // Fallback save locally if serverless API route is unreachable
-      setDraftContent(updated);
-      try {
-        localStorage.setItem('vshn_draft_content', JSON.stringify(updated));
-      } catch {}
-      setSaveMessage('Draft saved to browser storage');
-      setTimeout(() => setSaveMessage(null), 3000);
-      return { success: true };
+      return { success: false, error: err.message || 'Error saving draft.' };
     } finally {
       setIsSaving(false);
     }
@@ -168,14 +247,6 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Publish Content
   const publishContent = async (updated: WebsiteContent): Promise<{ success: boolean; error?: string }> => {
     setIsSaving(true);
-    // Optimistically update live website content immediately
-    setContent(updated);
-    setDraftContent(null);
-    try {
-      localStorage.setItem('vshn_live_content', JSON.stringify(updated));
-      localStorage.removeItem('vshn_draft_content');
-    } catch {}
-
     try {
       const res = await fetch('/api/admin/save-content', {
         method: 'POST',
@@ -192,16 +263,27 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const errData = await res.json();
           errText = errData.error || errData.message || errText;
         } catch {}
-        console.warn('Backend save responded with non-200:', errText);
+        throw new Error(errText);
       }
 
-      setSaveMessage('Changes published live to website!');
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to publish content');
+      }
+
+      const saved = data.content || updated;
+      setContent(saved);
+      setDraftContent(null);
+      try {
+        localStorage.setItem('vshn_live_content', JSON.stringify(saved));
+        localStorage.removeItem('vshn_draft_content');
+      } catch {}
+
+      setSaveMessage('Changes published live to website and saved permanently!');
       setTimeout(() => setSaveMessage(null), 4000);
       return { success: true };
     } catch (err: any) {
-      setSaveMessage('Changes published to local storage!');
-      setTimeout(() => setSaveMessage(null), 4000);
-      return { success: true };
+      return { success: false, error: err.message || 'Error publishing content.' };
     } finally {
       setIsSaving(false);
     }
@@ -500,6 +582,10 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         deleteEnquiry,
         resetToDefaults,
         updateMediaLinks,
+        supabaseStatus,
+        checkSupabase,
+        updateSupabaseConfig,
+        syncSupabaseNow,
       }}
     >
       {children}
