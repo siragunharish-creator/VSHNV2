@@ -151,7 +151,7 @@ app.get('/api/admin/data', requireAdminAuth, (_req: express.Request, res: expres
   }
 });
 
-app.post('/api/admin/save-content', requireAdminAuth, (req: express.Request, res: express.Response) => {
+app.post('/api/admin/save-content', requireAdminAuth, async (req: express.Request, res: express.Response) => {
   const { content, isPublish } = req.body;
   if (!content) {
     res.status(400).json({ error: 'Content payload is missing.' });
@@ -159,10 +159,12 @@ app.post('/api/admin/save-content', requireAdminAuth, (req: express.Request, res
   }
 
   try {
-    db.saveContent(content, Boolean(isPublish), 'harish');
+    await db.saveContent(content, Boolean(isPublish), 'harish');
+    const publicContent = db.getPublicContent();
     res.json({
       success: true,
       message: isPublish ? 'Website changes published successfully!' : 'Draft saved successfully.',
+      content: publicContent,
     });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to save content: ' + err.message });

@@ -8,8 +8,27 @@ import { uploadImageToSupabase } from './src/server/supabase.ts';
 
 dotenv.config();
 
+// Crash protection
+process.on('uncaughtException', (err) => {
+  console.error('[Server Uncaught Exception]:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[Server Unhandled Rejection]:', reason);
+});
+
+function resolvePort(): number {
+  const portArgIdx = process.argv.indexOf('--port');
+  if (portArgIdx !== -1 && process.argv[portArgIdx + 1]) {
+    const val = parseInt(process.argv[portArgIdx + 1], 10);
+    if (!isNaN(val) && val > 0) return val;
+  }
+  const envPort = Number(process.env.PORT);
+  if (!isNaN(envPort) && envPort > 0) return envPort;
+  return 3000;
+}
+
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = resolvePort();
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Body parsers with generous limit for images/payloads
@@ -519,26 +538,58 @@ app.post('/api/admin/reset-demo', requireAdminAuth, (_req: Request, res: Respons
   }
 });
 
-// ======================== VITE INTEGRATION ========================
-async function startServer() {
-  if (!isProduction) {
-    const { createServer } = await import('vite');
-    const vite = await createServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.resolve(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+// Explicit 404 JSON response for any unhandled /api/* routes (prevents Vite serving index.html)
+app.all('/api/*', (req: Request, res: Response) => {
+  res.status(404).json({ error: `API route not found: ${req.method} ${req.path}` });
+});
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[VSHN Builders Server] running on http://0.0.0.0:${PORT}`);
+// ======================== VITE INTEGRATION ========================
+let viteMiddleware: any = null;
+let vitePromise: Promise<any> | null = null;
+
+if (!isProduction) {
+  vitePromise = (async () => {
+    try {
+      const { createServer } = await import('vite');
+      const vite = await createServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      viteMiddleware = vite.middlewares;
+      console.log('[Vite] Middleware initialized successfully');
+      return vite;
+    } catch (err) {
+      console.error('[Vite] Failed to initialize middleware:', err);
+      return null;
+    }
+  })();
+
+  app.use(async (req: Request, res: Response, next: NextFunction) => {
+    // Skip Vite for API, SSE, and static uploads
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    try {
+      if (!viteMiddleware && vitePromise) {
+        await vitePromise;
+      }
+      if (viteMiddleware) {
+        return viteMiddleware(req, res, next);
+      }
+    } catch (err) {
+      console.error('[Vite Handler Error]:', err);
+    }
+    next();
+  });
+} else {
+  const distPath = path.resolve(process.cwd(), 'dist');
+  app.use(express.static(distPath));
+  app.get('*', (_req: Request, res: Response) => {
+    res.sendFile(path.join(distPath, 'index.html'));
   });
 }
 
-startServer();
+// Bind TCP port immediately so dev server health-check and reverse proxy never timeout
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[VSHN Builders Server] running on http://0.0.0.0:${PORT}`);
+});

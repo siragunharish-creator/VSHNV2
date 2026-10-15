@@ -8,7 +8,68 @@ interface CostCalculatorProps {
 
 export const CostCalculator: React.FC<CostCalculatorProps> = ({ onOpenConsultationModal }) => {
   const { content } = useContent();
-  const { packages, settings } = content;
+  const { packages: rawPackages, settings } = content;
+
+  // Ensure packages array is never empty
+  const packages = (rawPackages && rawPackages.length > 0) ? rawPackages : [
+    {
+      id: 'pkg-super',
+      name: 'Super',
+      tagline: 'High quality essential construction with trusted certified materials',
+      ratePerSqFt: 2350,
+      badge: 'Economical & Strong',
+      isPopular: false,
+      isPublished: true,
+      description: 'Comprehensive turnkey solution for modern residential homes.',
+      includedHighlights: [
+        'Tata Tiscon 550D / ARS steel reinforcement',
+        'Ultratech / Dalmia 53 grade OPC & PPC cement',
+        'Somany / Kajaria 4x2 vitrified tiles (₹65/sq.ft)',
+        'Parryware / Jaquar CP fittings & sanitaryware',
+        'First-quality red brick / solid block masonry',
+        'Asian Paints primer, 2 coats putty & tractor emulsion',
+      ],
+      specifications: {},
+    },
+    {
+      id: 'pkg-deluxe',
+      name: 'Deluxe',
+      tagline: 'Our most sought-after package with premium fittings, teak wood main entrance & UPVC windows',
+      ratePerSqFt: 2450,
+      badge: 'Best Value • Most Chosen',
+      isPopular: true,
+      isPublished: true,
+      description: 'Superior grade turnkey home building with elevated aesthetic finishes.',
+      includedHighlights: [
+        'Tata Tiscon 550D Fe-grade certified steel frame',
+        'Ultratech Super / Ramco Supergrade cement',
+        'Kajaria / Somany 4x2 double charged vitrified tiles (₹85/sq.ft)',
+        'First-quality Ghana Teak wood 5"x3" main door frame & 38mm carved shutter',
+        'UPVC 3-track sliding windows with Saint-Gobain toughened glass & mosquito mesh',
+        'Kohler / Jaquar concealed diverters & premium sanitaryware',
+      ],
+      specifications: {},
+    },
+    {
+      id: 'pkg-premium',
+      name: 'Premium',
+      tagline: 'Architectural luxury with Italian marble options, smart home conduits, Grohe bath suites & designer facade',
+      ratePerSqFt: 2650,
+      badge: 'Architectural Luxury',
+      isPopular: false,
+      isPublished: true,
+      description: 'Bespoke custom villa construction with finest architectural appointments.',
+      includedHighlights: [
+        'Tata Tiscon 550D earthquake-resistant structural detailing',
+        'Italian marble / Simpolo 6x4 premium slab tiles (₹130/sq.ft)',
+        '100% Teak wood interior and exterior frames throughout',
+        'Grohe / Kohler smart digital shower panels & wall-hung commodes',
+        'Smart automation conduit routing & biometric digital door locks',
+        'Full exterior textured Sherwin-Williams / Apex Ultima weatherproof painting',
+      ],
+      specifications: {},
+    },
+  ];
 
   // Selected package (default to Deluxe)
   const [selectedPackageId, setSelectedPackageId] = useState<string>(
@@ -18,10 +79,10 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ onOpenConsultati
   const [floors, setFloors] = useState<string>('G+1');
 
   const currentPackage = useMemo(() => {
-    return packages.find((p) => p.id === selectedPackageId) || packages[0];
+    return packages.find((p) => p.id === selectedPackageId) || packages.find((p) => p.isPopular) || packages[0];
   }, [packages, selectedPackageId]);
 
-  const rate = currentPackage ? currentPackage.ratePerSqFt : 2450;
+  const rate = currentPackage?.ratePerSqFt || 2450;
   const totalCost = sqFt * rate;
 
   // Indian Rupee currency format helper
@@ -55,7 +116,7 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ onOpenConsultati
     `Hello VSHN Builders, I used your online Cost Calculator for a project in Chennai/TN:\n\n` +
       `• Built-up Area: ${sqFt} sq.ft\n` +
       `• Floor Configuration: ${floors}\n` +
-      `• Selected Package: ${currentPackage?.name} (@ ₹${rate}/sq.ft)\n` +
+      `• Selected Package: ${currentPackage?.name || 'Deluxe'} (@ ₹${rate}/sq.ft)\n` +
       `• Estimated Total: ${formatINR(totalCost)} (approx. ${toLakhs(totalCost)})\n\n` +
       `I would like to schedule a site evaluation and discuss architectural drawings.`
   );
@@ -194,10 +255,10 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ onOpenConsultati
             {/* Key Inclusions for current package */}
             <div className="pt-4 border-t border-stone-100 dark:border-stone-800">
               <span className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-2 block">
-                Top Inclusions in {currentPackage?.name} Package:
+                Top Inclusions in {currentPackage?.name || 'Deluxe'} Package:
               </span>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-stone-700 dark:text-stone-300">
-                {currentPackage?.includedHighlights.slice(0, 6).map((item, i) => (
+                {(currentPackage?.includedHighlights || []).slice(0, 6).map((item, i) => (
                   <li key={i} className="flex items-start gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                     <span>{item}</span>
@@ -216,7 +277,7 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ onOpenConsultati
               {formatINR(totalCost)}
             </div>
             <div className="text-xs text-stone-300 font-medium mb-6">
-              Approx. <span className="font-bold text-amber-400">{toLakhs(totalCost)}</span> for {sqFt} sq.ft {floors} with {currentPackage?.name} specifications.
+              Approx. <span className="font-bold text-amber-400">{toLakhs(totalCost)}</span> for {sqFt} sq.ft {floors} with {currentPackage?.name || 'Deluxe'} specifications.
             </div>
 
             {/* Itemized Cost Breakdown Bar */}

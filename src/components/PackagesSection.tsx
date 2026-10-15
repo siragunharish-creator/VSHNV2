@@ -8,7 +8,66 @@ interface PackagesSectionProps {
 
 export const PackagesSection: React.FC<PackagesSectionProps> = ({ onOpenConsultationModal }) => {
   const { content } = useContent();
-  const { packages, settings } = content;
+  const { packages: rawPackages, settings } = content;
+  const packages = (rawPackages && rawPackages.length > 0) ? rawPackages : [
+    {
+      id: 'pkg-super',
+      name: 'Super',
+      tagline: 'High quality essential construction with trusted certified materials',
+      ratePerSqFt: 2350,
+      badge: 'Economical & Strong',
+      isPopular: false,
+      isPublished: true,
+      description: 'Comprehensive turnkey solution for modern residential homes.',
+      includedHighlights: [
+        'Tata Tiscon 550D / ARS steel reinforcement',
+        'Ultratech / Dalmia 53 grade OPC & PPC cement',
+        'Somany / Kajaria 4x2 vitrified tiles (₹65/sq.ft)',
+        'Parryware / Jaquar CP fittings & sanitaryware',
+        'First-quality red brick / solid block masonry',
+        'Asian Paints primer, 2 coats putty & tractor emulsion',
+      ],
+      specifications: [],
+    },
+    {
+      id: 'pkg-deluxe',
+      name: 'Deluxe',
+      tagline: 'Our most sought-after package with premium fittings, teak wood main entrance & UPVC windows',
+      ratePerSqFt: 2450,
+      badge: 'Best Value • Most Chosen',
+      isPopular: true,
+      isPublished: true,
+      description: 'Superior grade turnkey home building with elevated aesthetic finishes.',
+      includedHighlights: [
+        'Tata Tiscon 550D Fe-grade certified steel frame',
+        'Ultratech Super / Ramco Supergrade cement',
+        'Kajaria / Somany 4x2 double charged vitrified tiles (₹85/sq.ft)',
+        'First-quality Ghana Teak wood 5"x3" main door frame & 38mm carved shutter',
+        'UPVC 3-track sliding windows with Saint-Gobain toughened glass & mosquito mesh',
+        'Kohler / Jaquar concealed diverters & premium sanitaryware',
+      ],
+      specifications: [],
+    },
+    {
+      id: 'pkg-premium',
+      name: 'Premium',
+      tagline: 'Architectural luxury with Italian marble options, smart home conduits, Grohe bath suites & designer facade',
+      ratePerSqFt: 2650,
+      badge: 'Architectural Luxury',
+      isPopular: false,
+      isPublished: true,
+      description: 'Bespoke custom villa construction with finest architectural appointments.',
+      includedHighlights: [
+        'Tata Tiscon 550D earthquake-resistant structural detailing',
+        'Italian marble / Simpolo 6x4 premium slab tiles (₹130/sq.ft)',
+        '100% Teak wood interior and exterior frames throughout',
+        'Grohe / Kohler smart digital shower panels & wall-hung commodes',
+        'Smart automation conduit routing & biometric digital door locks',
+        'Full exterior textured Sherwin-Williams / Apex Ultima weatherproof painting',
+      ],
+      specifications: [],
+    },
+  ];
   const [showComparisonTable, setShowComparisonTable] = useState<boolean>(false);
 
   // Common comparison categories
@@ -176,7 +235,8 @@ export const PackagesSection: React.FC<PackagesSectionProps> = ({ onOpenConsulta
                   <tr key={idx} className="hover:bg-stone-50/50 dark:hover:bg-stone-800/40">
                     <td className="p-4 font-semibold text-stone-900 dark:text-stone-100">{cat}</td>
                     {packages.map((pkg) => {
-                      const spec = pkg.specifications.find((s) => s.category.toLowerCase().includes(cat.toLowerCase().slice(0, 5))) || pkg.specifications[idx];
+                      const specs = Array.isArray(pkg.specifications) ? pkg.specifications : [];
+                      const spec = specs.find((s: { category: string; details: string }) => s.category?.toLowerCase().includes(cat.toLowerCase().slice(0, 5))) || specs[idx];
                       return (
                         <td key={pkg.id} className="p-4 leading-relaxed">
                           {spec?.details || 'Standard certified brand grade'}

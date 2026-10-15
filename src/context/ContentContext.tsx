@@ -55,19 +55,61 @@ interface ContentContextType {
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
+function sanitizeLoadedContent(data?: Partial<WebsiteContent> | null): WebsiteContent {
+  if (!data) return initialWebsiteContent;
+  return {
+    ...initialWebsiteContent,
+    ...data,
+    settings: {
+      ...initialWebsiteContent.settings,
+      ...(data.settings || {}),
+      hero: {
+        ...initialWebsiteContent.settings.hero,
+        ...(data.settings?.hero || {}),
+      },
+      aboutSection: {
+        ...initialWebsiteContent.settings.aboutSection,
+        ...(data.settings?.aboutSection || {}),
+      },
+      featuredMedia: {
+        ...initialWebsiteContent.settings.featuredMedia,
+        ...(data.settings?.featuredMedia || {}),
+      },
+      socials: {
+        ...initialWebsiteContent.settings.socials,
+        ...(data.settings?.socials || {}),
+      },
+      sectionVisibility: {
+        ...initialWebsiteContent.settings.sectionVisibility,
+        ...(data.settings?.sectionVisibility || {}),
+      },
+      seo: {
+        ...initialWebsiteContent.settings.seo,
+        ...(data.settings?.seo || {}),
+      },
+    },
+    projects: Array.isArray(data.projects) && data.projects.length > 0 ? data.projects : initialWebsiteContent.projects,
+    packages: Array.isArray(data.packages) && data.packages.length > 0 ? data.packages : initialWebsiteContent.packages,
+    services: Array.isArray(data.services) && data.services.length > 0 ? data.services : initialWebsiteContent.services,
+    testimonials: Array.isArray(data.testimonials) && data.testimonials.length > 0 ? data.testimonials : initialWebsiteContent.testimonials,
+    faqs: Array.isArray(data.faqs) && data.faqs.length > 0 ? data.faqs : initialWebsiteContent.faqs,
+    mediaLibrary: Array.isArray(data.mediaLibrary) && data.mediaLibrary.length > 0 ? data.mediaLibrary : initialWebsiteContent.mediaLibrary,
+  };
+}
+
 export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token, isAuthenticated } = useAuth();
   const [content, setContent] = useState<WebsiteContent>(() => {
     try {
       const saved = localStorage.getItem('vshn_live_content');
-      if (saved) return JSON.parse(saved);
+      if (saved) return sanitizeLoadedContent(JSON.parse(saved));
     } catch {}
     return initialWebsiteContent;
   });
   const [draftContent, setDraftContent] = useState<WebsiteContent | null>(() => {
     try {
       const saved = localStorage.getItem('vshn_draft_content');
-      if (saved) return JSON.parse(saved);
+      if (saved) return sanitizeLoadedContent(JSON.parse(saved));
     } catch {}
     return null;
   });
@@ -96,64 +138,98 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     tableExists?: boolean;
   } | null>(null);
 
+  // Safe fetch helper that protects against HTML error pages like <!DOCTYPE html>
+  const safeFetchJson = async <T = any>(
+    url: string,
+    options?: RequestInit
+  ): Promise<{ ok: boolean; status: number; data?: T; error?: string }> => {
+    try {
+      const res = await fetch(url, options);
+      const contentType = res.headers.get('content-type') || '';
+
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (!res.ok) {
+          return {
+            ok: false,
+            status: res.status,
+            data,
+            error: data.error || data.message || `Server returned error (${res.status})`,
+          };
+        }
+        return { ok: true, status: res.status, data };
+      }
+
+      // Response is HTML or non-JSON (e.g. 502 warmup page, 401 redirect, 404)
+      if (res.status === 401 || res.status === 403) {
+        return { ok: false, status: res.status, error: 'Session expired or unauthorized. Please log in as administrator.' };
+      }
+      if (res.status === 502 || res.status === 503 || res.status === 504) {
+        return { ok: false, status: res.status, error: 'Server is starting up or reloading. Please try again in a moment.' };
+      }
+      if (res.status === 404) {
+        return { ok: false, status: 404, error: `API route ${url} not found.` };
+      }
+      if (!res.ok) {
+        return { ok: false, status: res.status, error: `Server error (${res.status}). Please try again.` };
+      }
+
+      // Status 200 but HTML was returned (e.g. SPA fallback)
+      return {
+        ok: false,
+        status: res.status,
+        error: 'Server returned HTML instead of expected JSON data. Please refresh and try again.',
+      };
+    } catch (err: any) {
+      return { ok: false, status: 0, error: err.message || 'Network request failed.' };
+    }
+  };
+
   // Supabase status checker
   const checkSupabase = useCallback(async () => {
     if (!token) return;
-    try {
-      const res = await fetch('/api/admin/supabase-status', {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store',
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSupabaseStatus(data);
-      }
-    } catch {}
+    const { ok, data } = await safeFetchJson('/api/admin/supabase-status', {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (ok && data) {
+      setSupabaseStatus(data);
+    }
   }, [token]);
 
   const updateSupabaseConfig = async (
     key?: string,
     projectUrl?: string
   ): Promise<{ success: boolean; error?: string }> => {
-    if (!token) return { success: false, error: 'Unauthorized' };
-    try {
-      const res = await fetch('/api/admin/supabase-config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ publishableKey: key, projectUrl }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setSupabaseStatus(data.status);
-        await refreshContent();
-        return { success: true };
-      }
-      return { success: false, error: data.error || 'Failed to update Supabase configuration' };
-    } catch (err: any) {
-      return { success: false, error: err.message };
+    if (!token) return { success: false, error: 'Unauthorized. Please log in as administrator.' };
+    const { ok, data, error } = await safeFetchJson('/api/admin/supabase-config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ publishableKey: key, projectUrl }),
+    });
+    if (ok && data?.success) {
+      setSupabaseStatus(data.status);
+      await refreshContent();
+      return { success: true };
     }
+    return { success: false, error: data?.error || error || 'Failed to update Supabase configuration' };
   };
 
   const syncSupabaseNow = async (): Promise<{ success: boolean; message: string }> => {
-    if (!token) return { success: false, message: 'Unauthorized' };
-    try {
-      const res = await fetch('/api/admin/supabase-sync', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        await refreshContent();
-        await checkSupabase();
-        return { success: true, message: data.message };
-      }
-      return { success: false, message: data.message || data.error || 'Sync failed' };
-    } catch (err: any) {
-      return { success: false, message: err.message };
+    if (!token) return { success: false, message: 'Unauthorized. Please log in as administrator.' };
+    const { ok, data, error } = await safeFetchJson('/api/admin/supabase-sync', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (ok && data?.success) {
+      await refreshContent();
+      await checkSupabase();
+      return { success: true, message: data.message };
     }
+    return { success: false, message: data?.message || error || 'Sync failed' };
   };
 
   // Fetch content function with cache: 'no-store'
@@ -169,9 +245,9 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const contentType = res.headers.get('content-type');
         if (res.ok && contentType && contentType.includes('application/json')) {
           const data = await res.json();
-          const pub = data.published || initialWebsiteContent;
+          const pub = sanitizeLoadedContent(data.published);
           setContent(pub);
-          setDraftContent(data.draft || null);
+          setDraftContent(data.draft ? sanitizeLoadedContent(data.draft) : null);
           setEnquiries(data.enquiries || []);
           setActivities(data.activities || []);
           try {
@@ -189,7 +265,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
       const pubType = pubRes.headers.get('content-type');
       if (pubRes.ok && pubType && pubType.includes('application/json')) {
-        const pubData = await pubRes.json();
+        const pubData = sanitizeLoadedContent(await pubRes.json());
         setContent(pubData);
         try {
           localStorage.setItem('vshn_live_content', JSON.stringify(pubData));
@@ -214,28 +290,23 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!token) return { success: false, error: 'Unauthorized. Please log in as administrator.' };
     setIsSaving(true);
     try {
-      const res = await fetch('/api/admin/save-content', {
+      const sanitized = sanitizeLoadedContent(updated);
+      const { ok, data, error } = await safeFetchJson('/api/admin/save-content', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ content: updated, isPublish: false }),
+        body: JSON.stringify({ content: sanitized, isPublish: false }),
       });
-      if (!res.ok) {
-        let errText = 'Failed to save draft';
-        try {
-          const errData = await res.json();
-          errText = errData.error || errData.message || errText;
-        } catch {}
-        throw new Error(errText);
-      }
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Failed to save draft');
 
-      setDraftContent(updated);
+      if (!ok || !data?.success) {
+        throw new Error(error || data?.error || 'Failed to save draft');
+      }
+
+      setDraftContent(sanitized);
       try {
-        localStorage.setItem('vshn_draft_content', JSON.stringify(updated));
+        localStorage.setItem('vshn_draft_content', JSON.stringify(sanitized));
       } catch {}
       setSaveMessage('Draft saved successfully');
       setTimeout(() => setSaveMessage(null), 3000);
@@ -249,32 +320,24 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Publish Content
   const publishContent = async (updated: WebsiteContent): Promise<{ success: boolean; error?: string }> => {
+    if (!token) return { success: false, error: 'Unauthorized. Please log in as administrator.' };
     setIsSaving(true);
     try {
-      const res = await fetch('/api/admin/save-content', {
+      const sanitized = sanitizeLoadedContent(updated);
+      const { ok, data, error } = await safeFetchJson('/api/admin/save-content', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ content: updated, isPublish: true }),
+        body: JSON.stringify({ content: sanitized, isPublish: true }),
       });
 
-      if (!res.ok) {
-        let errText = 'Server error publishing content';
-        try {
-          const errData = await res.json();
-          errText = errData.error || errData.message || errText;
-        } catch {}
-        throw new Error(errText);
+      if (!ok || !data?.success) {
+        throw new Error(error || data?.error || 'Failed to publish content');
       }
 
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to publish content');
-      }
-
-      const saved = data.content || updated;
+      const saved = sanitizeLoadedContent(data.content || sanitized);
       setContent(saved);
       setDraftContent(null);
       try {
@@ -301,6 +364,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     title?: string;
     subtitle?: string;
   }): Promise<{ success: boolean; message?: string; error?: string }> => {
+    if (!token) return { success: false, error: 'Unauthorized. Please log in as administrator.' };
     setIsSaving(true);
 
     const currentFeatured = content.settings.featuredMedia || initialWebsiteContent.settings.featuredMedia;
@@ -320,7 +384,6 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       ...(links.instagramSocial !== undefined ? { instagram: links.instagramSocial.trim() } : {}),
     };
 
-    // Auto-sync social channel if full channel URL was entered
     if (links.youtubeVideoUrl && (!links.youtubeSocial || !socials.youtube)) {
       if (
         links.youtubeVideoUrl.includes('@') ||
@@ -348,11 +411,11 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     // 2. Persist to server backend
     try {
-      const res = await fetch('/api/admin/save-media-links', {
+      const { ok, data } = await safeFetchJson('/api/admin/save-media-links', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           youtubeVideoUrl: featured.youtubeVideoUrl,
@@ -364,21 +427,17 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.content) {
-          setContent(data.content);
-          try {
-            localStorage.setItem('vshn_live_content', JSON.stringify(data.content));
-          } catch {}
-        }
+      if (ok && data?.content) {
+        setContent(data.content);
+        try {
+          localStorage.setItem('vshn_live_content', JSON.stringify(data.content));
+        } catch {}
       } else {
-        // Fallback to save-content
-        await fetch('/api/admin/save-content', {
+        await safeFetchJson('/api/admin/save-content', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ content: updatedContent, isPublish: true }),
         });
@@ -403,7 +462,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   ): Promise<{ success: boolean; url?: string; error?: string }> => {
     if (!token) return { success: false, error: 'Unauthorized' };
     try {
-      let res: Response;
+      let fetchPromise;
       if (fileOrBase64 instanceof File) {
         const formData = new FormData();
         formData.append('image', fileOrBase64);
@@ -411,13 +470,13 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (metadata?.category) formData.append('category', metadata.category);
         if (metadata?.altText) formData.append('altText', metadata.altText);
 
-        res = await fetch('/api/admin/upload', {
+        fetchPromise = safeFetchJson('/api/admin/upload', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
         });
       } else {
-        res = await fetch('/api/admin/upload', {
+        fetchPromise = safeFetchJson('/api/admin/upload', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -433,15 +492,15 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         });
       }
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        return { success: false, error: data.error || 'Image upload failed' };
+      const { ok, data, error } = await fetchPromise;
+      if (!ok || !data?.success) {
+        return { success: false, error: data?.error || error || 'Image upload failed' };
       }
 
       await refreshContent();
       return { success: true, url: data.url };
     } catch (err: any) {
-      return { success: false, error: err.message };
+      return { success: false, error: err.message || 'Image upload failed' };
     }
   };
 
@@ -548,21 +607,16 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Reset to default authentic data
   const resetToDefaults = async (): Promise<{ success: boolean; message?: string }> => {
-    if (!token) return { success: false, message: 'Unauthorized' };
-    try {
-      const res = await fetch('/api/admin/reset-demo', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        await refreshContent();
-        return { success: true, message: data.message };
-      }
-      return { success: false, message: data.error };
-    } catch (err: any) {
-      return { success: false, message: err.message };
+    if (!token) return { success: false, message: 'Unauthorized. Please log in as administrator.' };
+    const { ok, data, error } = await safeFetchJson('/api/admin/reset-demo', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (ok && data?.success) {
+      await refreshContent();
+      return { success: true, message: data.message };
     }
+    return { success: false, message: data?.error || error || 'Reset failed' };
   };
 
   return (

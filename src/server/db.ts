@@ -20,6 +20,7 @@ const DRAFT_FILE = path.join(DATA_DIR, 'draft.json');
 const ENQUIRIES_FILE = path.join(DATA_DIR, 'enquiries.json');
 const ACTIVITY_FILE = path.join(DATA_DIR, 'activity.json');
 const AUTH_FILE = path.join(DATA_DIR, 'auth.json');
+const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
 
 // Safe file helper for Vercel/serverless environments with read-only root filesystems
 function safeWriteFile(filePath: string, data: string): boolean {
@@ -31,7 +32,6 @@ function safeWriteFile(filePath: string, data: string): boolean {
     fs.writeFileSync(filePath, data, 'utf-8');
     return true;
   } catch (err) {
-    // If writing to process.cwd() fails (e.g. EROFS on Vercel), fall back to /tmp
     try {
       const baseName = path.basename(filePath);
       if (!fs.existsSync(TMP_DATA_DIR)) {
@@ -46,7 +46,6 @@ function safeWriteFile(filePath: string, data: string): boolean {
 }
 
 function safeReadFile(filePath: string): string | null {
-  // Check /tmp first (holds newer runtime updates in serverless)
   const baseName = path.basename(filePath);
   const tmpPath = path.join(TMP_DATA_DIR, baseName);
   if (fs.existsSync(tmpPath)) {
@@ -96,9 +95,7 @@ function initAuth(): StoredAuth {
     try {
       const data = JSON.parse(content);
       if (data.username && data.passwordHash) return data;
-    } catch {
-      // Fallback to default
-    }
+    } catch {}
   }
 
   const defaultUser = process.env.ADMIN_USERNAME || 'harish';
@@ -117,8 +114,34 @@ function initAuth(): StoredAuth {
   return authData;
 }
 
-// In-memory active tokens session store
-const activeSessions = new Map<string, { username: string; expiresAt: number }>();
+// Session store that persists across server restarts
+function loadStoredSessions(): Map<string, { username: string; expiresAt: number }> {
+  const map = new Map<string, { username: string; expiresAt: number }>();
+  const raw = safeReadFile(SESSIONS_FILE);
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      const now = Date.now();
+      for (const [token, session] of Object.entries(parsed as Record<string, { username: string; expiresAt: number }>)) {
+        if (session && session.expiresAt > now) {
+          map.set(token, session);
+        }
+      }
+    } catch {}
+  }
+  return map;
+}
+
+function saveStoredSessions(sessions: Map<string, { username: string; expiresAt: number }>) {
+  const obj: Record<string, { username: string; expiresAt: number }> = {};
+  for (const [token, session] of sessions.entries()) {
+    obj[token] = session;
+  }
+  safeWriteFile(SESSIONS_FILE, JSON.stringify(obj, null, 2));
+}
+
+// Active tokens session store loaded from disk
+const activeSessions = loadStoredSessions();
 
 // Login rate limiting: 5 failed attempts per IP / window
 const loginAttempts = new Map<string, { attempts: number; lockedUntil: number }>();
@@ -148,37 +171,44 @@ export class DatabaseService {
       const remote = await loadContentFromSupabase();
       if (remote && remote.published) {
         console.log('[DB] Authoritative content loaded from Supabase');
+        const pub = remote.published;
         this.content = {
           ...initialWebsiteContent,
-          ...remote.published,
+          ...pub,
           settings: {
             ...initialWebsiteContent.settings,
-            ...remote.published.settings,
+            ...(pub.settings || {}),
             featuredMedia: {
               ...initialWebsiteContent.settings.featuredMedia,
-              ...(remote.published.settings?.featuredMedia || {}),
+              ...(pub.settings?.featuredMedia || {}),
             },
             socials: {
               ...initialWebsiteContent.settings.socials,
-              ...(remote.published.settings?.socials || {}),
+              ...(pub.settings?.socials || {}),
             },
             hero: {
               ...initialWebsiteContent.settings.hero,
-              ...(remote.published.settings?.hero || {}),
+              ...(pub.settings?.hero || {}),
             },
             aboutSection: {
               ...initialWebsiteContent.settings.aboutSection,
-              ...(remote.published.settings?.aboutSection || {}),
+              ...(pub.settings?.aboutSection || {}),
             },
             sectionVisibility: {
               ...initialWebsiteContent.settings.sectionVisibility,
-              ...(remote.published.settings?.sectionVisibility || {}),
+              ...(pub.settings?.sectionVisibility || {}),
             },
             seo: {
               ...initialWebsiteContent.settings.seo,
-              ...(remote.published.settings?.seo || {}),
+              ...(pub.settings?.seo || {}),
             },
           },
+          projects: Array.isArray(pub.projects) && pub.projects.length > 0 ? pub.projects : initialWebsiteContent.projects,
+          services: Array.isArray(pub.services) && pub.services.length > 0 ? pub.services : initialWebsiteContent.services,
+          packages: Array.isArray(pub.packages) && pub.packages.length > 0 ? pub.packages : initialWebsiteContent.packages,
+          testimonials: Array.isArray(pub.testimonials) && pub.testimonials.length > 0 ? pub.testimonials : initialWebsiteContent.testimonials,
+          faqs: Array.isArray(pub.faqs) && pub.faqs.length > 0 ? pub.faqs : initialWebsiteContent.faqs,
+          mediaLibrary: Array.isArray(pub.mediaLibrary) && pub.mediaLibrary.length > 0 ? pub.mediaLibrary : initialWebsiteContent.mediaLibrary,
         };
         if (remote.draft) {
           this.draftContent = remote.draft;
@@ -207,13 +237,12 @@ export class DatabaseService {
     if (raw) {
       try {
         const parsed = JSON.parse(raw);
-        // Ensure new settings fields like featuredMedia, seo, sectionVisibility are merged seamlessly
         return {
           ...initialWebsiteContent,
           ...parsed,
           settings: {
             ...initialWebsiteContent.settings,
-            ...parsed.settings,
+            ...(parsed.settings || {}),
             featuredMedia: {
               ...initialWebsiteContent.settings.featuredMedia,
               ...(parsed.settings?.featuredMedia || {}),
@@ -239,6 +268,12 @@ export class DatabaseService {
               ...(parsed.settings?.seo || {}),
             },
           },
+          projects: Array.isArray(parsed.projects) && parsed.projects.length > 0 ? parsed.projects : initialWebsiteContent.projects,
+          services: Array.isArray(parsed.services) && parsed.services.length > 0 ? parsed.services : initialWebsiteContent.services,
+          packages: Array.isArray(parsed.packages) && parsed.packages.length > 0 ? parsed.packages : initialWebsiteContent.packages,
+          testimonials: Array.isArray(parsed.testimonials) && parsed.testimonials.length > 0 ? parsed.testimonials : initialWebsiteContent.testimonials,
+          faqs: Array.isArray(parsed.faqs) && parsed.faqs.length > 0 ? parsed.faqs : initialWebsiteContent.faqs,
+          mediaLibrary: Array.isArray(parsed.mediaLibrary) && parsed.mediaLibrary.length > 0 ? parsed.mediaLibrary : initialWebsiteContent.mediaLibrary,
         };
       } catch (err) {
         console.error('Error reading content file, falling back to defaults', err);
@@ -338,6 +373,7 @@ export class DatabaseService {
       username,
       expiresAt: now + 7 * 24 * 60 * 60 * 1000,
     });
+    saveStoredSessions(activeSessions);
 
     this.logActivity('Admin Login', `Admin ${username} signed in successfully`, username);
     return { success: true, token };
@@ -357,17 +393,28 @@ export class DatabaseService {
     if (!token) return false;
     // Allow client tokens generated in resilient client mode
     if (token.startsWith('vshn_client_') && token.length > 20) return true;
-    const session = activeSessions.get(token);
+    let session = activeSessions.get(token);
+    if (!session) {
+      const stored = loadStoredSessions();
+      session = stored.get(token);
+      if (session) {
+        activeSessions.set(token, session);
+      }
+    }
     if (!session) return false;
     if (session.expiresAt < Date.now()) {
       activeSessions.delete(token);
+      saveStoredSessions(activeSessions);
       return false;
     }
     return true;
   }
 
   public logout(token?: string): void {
-    if (token) activeSessions.delete(token);
+    if (token) {
+      activeSessions.delete(token);
+      saveStoredSessions(activeSessions);
+    }
   }
 
   public changePassword(oldPass: string, newPass: string, token: string): { success: boolean; error?: string } {
@@ -427,8 +474,54 @@ export class DatabaseService {
 
   // Save content
   public async saveContent(content: WebsiteContent, isPublish: boolean, user: string): Promise<void> {
+    const sanitizedContent: WebsiteContent = {
+      ...this.content,
+      ...content,
+      settings: {
+        ...initialWebsiteContent.settings,
+        ...(this.content.settings || {}),
+        ...(content.settings || {}),
+        hero: {
+          ...initialWebsiteContent.settings.hero,
+          ...(this.content.settings?.hero || {}),
+          ...(content.settings?.hero || {}),
+        },
+        aboutSection: {
+          ...initialWebsiteContent.settings.aboutSection,
+          ...(this.content.settings?.aboutSection || {}),
+          ...(content.settings?.aboutSection || {}),
+        },
+        featuredMedia: {
+          ...initialWebsiteContent.settings.featuredMedia,
+          ...(this.content.settings?.featuredMedia || {}),
+          ...(content.settings?.featuredMedia || {}),
+        },
+        socials: {
+          ...initialWebsiteContent.settings.socials,
+          ...(this.content.settings?.socials || {}),
+          ...(content.settings?.socials || {}),
+        },
+        sectionVisibility: {
+          ...initialWebsiteContent.settings.sectionVisibility,
+          ...(this.content.settings?.sectionVisibility || {}),
+          ...(content.settings?.sectionVisibility || {}),
+        },
+        seo: {
+          ...initialWebsiteContent.settings.seo,
+          ...(this.content.settings?.seo || {}),
+          ...(content.settings?.seo || {}),
+        },
+      },
+      projects: Array.isArray(content.projects) && content.projects.length > 0 ? content.projects : this.content.projects,
+      services: Array.isArray(content.services) && content.services.length > 0 ? content.services : this.content.services,
+      packages: Array.isArray(content.packages) && content.packages.length > 0 ? content.packages : this.content.packages,
+      testimonials: Array.isArray(content.testimonials) && content.testimonials.length > 0 ? content.testimonials : this.content.testimonials,
+      faqs: Array.isArray(content.faqs) && content.faqs.length > 0 ? content.faqs : this.content.faqs,
+      mediaLibrary: Array.isArray(content.mediaLibrary) && content.mediaLibrary.length > 0 ? content.mediaLibrary : this.content.mediaLibrary,
+    };
+
     if (isPublish) {
-      this.content = content;
+      this.content = sanitizedContent;
       this.draftContent = null;
       this.saveContentDirect(this.content);
       try {
@@ -440,8 +533,7 @@ export class DatabaseService {
       } catch {}
       this.logActivity('Website Published', 'Administrator published live changes to the website', user);
     } else {
-      this.draftContent = content;
-      // Also update featured media and socials in live content so visitors and other browsers get them immediately
+      this.draftContent = sanitizedContent;
       if (content.settings?.featuredMedia || content.settings?.socials) {
         this.content.settings = {
           ...this.content.settings,
@@ -450,13 +542,13 @@ export class DatabaseService {
         };
         this.saveContentDirect(this.content);
       }
-      safeWriteFile(DRAFT_FILE, JSON.stringify(content, null, 2));
+      safeWriteFile(DRAFT_FILE, JSON.stringify(sanitizedContent, null, 2));
       this.logActivity('Draft Saved', 'Administrator saved work in progress draft', user);
     }
 
     // Persist to Supabase
     try {
-      await upsertContentToSupabase(content, isPublish, user);
+      await upsertContentToSupabase(sanitizedContent, isPublish, user);
     } catch (err: any) {
       console.warn('[DB] Supabase async save notice:', err.message);
     }

@@ -1,5 +1,18 @@
 [
   {
+    "id": "enq-1792039633470",
+    "name": "Karthik Raman",
+    "phone": "9840123456",
+    "email": "karthik@example.com",
+    "plotLocation": "Anna Nagar, Chennai",
+    "serviceNeeded": "Complete residential construction",
+    "estimatedSqFt": 2200,
+    "preferredPackage": "Deluxe",
+    "message": "Looking to start construction in Q2 2026",
+    "status": "new",
+    "createdAt": "2026-10-15T04:47:13.470Z"
+  },
+  {
     "id": "enq-1791823588660",
     "name": "Suresh Kumar",
     "phone": "9840199999",

@@ -1,5 +1,117 @@
 [
   {
+    "id": "act-1792039633470-146",
+    "action": "New Customer Enquiry",
+    "details": "Consultation request from Karthik Raman (9840123456)",
+    "timestamp": "2026-10-15T04:47:13.470Z",
+    "user": "visitor"
+  },
+  {
+    "id": "act-1792039633035-504",
+    "action": "Media Links Updated",
+    "details": "Updated YouTube (https://www.youtube.com/watch?v=dQw4w9WgXcQ) & Instagram (https://www.instagram.com/p/DF2N8c5z0fL/) links",
+    "timestamp": "2026-10-15T04:47:13.035Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792039632542-784",
+    "action": "Website Published",
+    "details": "Administrator published live changes to the website",
+    "timestamp": "2026-10-15T04:47:12.542Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792039632517-227",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-10-15T04:47:12.517Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792038719531-142",
+    "action": "Media Links Updated",
+    "details": "Updated YouTube (https://www.youtube.com/watch?v=dQw4w9WgXcQ) & Instagram (https://www.instagram.com/p/DF12345/) links",
+    "timestamp": "2026-10-15T04:31:59.531Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792038719105-934",
+    "action": "Website Published",
+    "details": "Administrator published live changes to the website",
+    "timestamp": "2026-10-15T04:31:59.105Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792038717743-764",
+    "action": "Draft Saved",
+    "details": "Administrator saved work in progress draft",
+    "timestamp": "2026-10-15T04:31:57.743Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792038717731-268",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-10-15T04:31:57.731Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792038294041-639",
+    "action": "Settings Published",
+    "details": "Administrator updated and published website settings live",
+    "timestamp": "2026-10-15T04:24:54.041Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792038292111-946",
+    "action": "Media Links Updated",
+    "details": "Updated YouTube (https://youtube.com/watch?v=test) & Instagram (https://www.instagram.com/p/DF2N8c5z0fL/) links",
+    "timestamp": "2026-10-15T04:24:52.111Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792038291288-133",
+    "action": "Website Published",
+    "details": "Administrator published live changes to the website",
+    "timestamp": "2026-10-15T04:24:51.288Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792038291275-393",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-10-15T04:24:51.275Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792038271614-38",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-10-15T04:24:31.614Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792038209286-413",
+    "action": "Website Published",
+    "details": "Administrator published live changes to the website",
+    "timestamp": "2026-10-15T04:23:29.286Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792038209277-16",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-10-15T04:23:29.277Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792037654852-406",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-10-15T04:14:14.852Z",
+    "user": "harish"
+  },
+  {
     "id": "act-1792037368543-287",
     "action": "Admin Login",
     "details": "Admin harish signed in successfully",
