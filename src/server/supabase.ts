@@ -3,64 +3,176 @@ import fs from 'fs';
 import path from 'path';
 import { WebsiteContent, ContactSubmission, ActivityLog } from '../shared/types.ts';
 
-const SUPABASE_PROJECT_URL =
-  process.env.SUPABASE_URL ||
-  process.env.VITE_SUPABASE_URL ||
-  'https://gybfpnothqoptffhmont.supabase.co';
-
-// File where admin-entered key can be cached if not in environment
+// File where admin-entered key & url can be cached
 const KEY_CACHE_FILE = path.resolve(process.cwd(), 'data', 'supabase-config.json');
 
-function getStoredKey(): string {
-  if (process.env.SUPABASE_ANON_KEY && process.env.SUPABASE_ANON_KEY.length > 20) {
-    return process.env.SUPABASE_ANON_KEY.trim();
+/**
+ * Sanitizes Supabase URL, stripping markdown links like [url](url), brackets, quotes, and trailing slashes.
+ */
+export function sanitizeSupabaseUrl(raw?: string | null): string {
+  if (!raw || typeof raw !== 'string') return '';
+  let str = raw.trim();
+
+  // Handle markdown links: [label](https://...) or [https://...](https://...)
+  const mdMatch = /\[.*?\]\((https?:\/\/[^\s\)]+)\)/i.exec(str);
+  if (mdMatch && mdMatch[1]) {
+    str = mdMatch[1];
   }
-  if (process.env.VITE_SUPABASE_ANON_KEY && process.env.VITE_SUPABASE_ANON_KEY.length > 20) {
-    return process.env.VITE_SUPABASE_ANON_KEY.trim();
+
+  // Strip wrapping brackets, quotes, angle brackets
+  str = str.replace(/^[\[\("<'\s]+|[\]\)">'\s]+$/g, '').trim();
+
+  // Extract valid http or https URL
+  const urlMatch = /https?:\/\/[^\s"'<>[\])]+/i.exec(str);
+  if (urlMatch && urlMatch[0]) {
+    str = urlMatch[0];
   }
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY.length > 20) {
-    return process.env.SUPABASE_SERVICE_ROLE_KEY.trim();
+
+  // Remove trailing slashes
+  str = str.replace(/\/+$/, '');
+
+  if (!str.startsWith('http://') && !str.startsWith('https://')) {
+    return '';
   }
+
+  return str;
+}
+
+/**
+ * Sanitizes Supabase publishable/anon key
+ */
+export function sanitizeSupabaseKey(raw?: string | null): string {
+  if (!raw || typeof raw !== 'string') return '';
+  let str = raw.trim();
+  str = str.replace(/^[\[\("<'\s]+|[\]\)">'\s]+$/g, '').trim();
+  return str;
+}
+
+/**
+ * Retrieve the active Supabase project URL
+ */
+export function getSupabaseProjectUrl(): string {
   try {
     if (fs.existsSync(KEY_CACHE_FILE)) {
       const data = JSON.parse(fs.readFileSync(KEY_CACHE_FILE, 'utf-8'));
-      if (data.publishableKey && typeof data.publishableKey === 'string' && data.publishableKey.length > 20) {
-        return data.publishableKey.trim();
+      if (data.projectUrl) {
+        const cleaned = sanitizeSupabaseUrl(data.projectUrl);
+        if (cleaned) return cleaned;
       }
     }
   } catch {}
+
+  const envUrl = sanitizeSupabaseUrl(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+  if (envUrl) {
+    return envUrl;
+  }
+
+  return 'https://uohziuryqsvbdbryclff.supabase.co';
+}
+
+function getStoredKey(): string {
+  try {
+    if (fs.existsSync(KEY_CACHE_FILE)) {
+      const data = JSON.parse(fs.readFileSync(KEY_CACHE_FILE, 'utf-8'));
+      if (data.publishableKey && typeof data.publishableKey === 'string') {
+        const clean = sanitizeSupabaseKey(data.publishableKey);
+        if (clean.length > 20) return clean;
+      }
+    }
+  } catch {}
+
+  const envKey = sanitizeSupabaseKey(
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+  if (envKey && envKey.length > 20) {
+    return envKey;
+  }
+
   return '';
 }
 
 let cachedClient: SupabaseClient | null = null;
-let currentActiveKey: string = getStoredKey();
+let lastUsedUrl: string = '';
+let lastUsedKey: string = '';
 
-export function setSupabaseKey(newKey: string): { success: boolean; error?: string } {
-  const clean = newKey.trim();
-  if (!clean || clean.length < 20) {
-    return { success: false, error: 'Publishable key must be a valid Supabase key.' };
-  }
+export function setSupabaseConfig(options: {
+  publishableKey?: string;
+  projectUrl?: string;
+}): { success: boolean; error?: string } {
   try {
+    let existingConfig: { publishableKey?: string; projectUrl?: string } = {};
+    if (fs.existsSync(KEY_CACHE_FILE)) {
+      try {
+        existingConfig = JSON.parse(fs.readFileSync(KEY_CACHE_FILE, 'utf-8'));
+      } catch {}
+    }
+
+    const newKey = options.publishableKey
+      ? sanitizeSupabaseKey(options.publishableKey)
+      : existingConfig.publishableKey || getStoredKey();
+
+    const newUrl = options.projectUrl
+      ? sanitizeSupabaseUrl(options.projectUrl)
+      : existingConfig.projectUrl || getSupabaseProjectUrl();
+
+    if (!newUrl) {
+      return { success: false, error: 'A valid Supabase HTTP or HTTPS URL is required.' };
+    }
+    if (!newKey || newKey.length < 20) {
+      return { success: false, error: 'Publishable key must be a valid Supabase key.' };
+    }
+
     const dir = path.dirname(KEY_CACHE_FILE);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(KEY_CACHE_FILE, JSON.stringify({ publishableKey: clean, updatedAt: new Date().toISOString() }), 'utf-8');
-    currentActiveKey = clean;
-    cachedClient = createClient(SUPABASE_PROJECT_URL, clean, {
+
+    fs.writeFileSync(
+      KEY_CACHE_FILE,
+      JSON.stringify(
+        {
+          publishableKey: newKey,
+          projectUrl: newUrl,
+          updatedAt: new Date().toISOString(),
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+
+    lastUsedUrl = newUrl;
+    lastUsedKey = newKey;
+    cachedClient = createClient(newUrl, newKey, {
       auth: { persistSession: false },
     });
+
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
 }
 
+export function setSupabaseKey(newKey: string): { success: boolean; error?: string } {
+  return setSupabaseConfig({ publishableKey: newKey });
+}
+
 export function getSupabaseClient(): SupabaseClient | null {
-  const key = currentActiveKey || getStoredKey();
-  if (!key) return null;
-  if (!cachedClient) {
-    cachedClient = createClient(SUPABASE_PROJECT_URL, key, {
-      auth: { persistSession: false },
-    });
+  const key = getStoredKey();
+  const url = getSupabaseProjectUrl();
+  if (!key || !url) return null;
+
+  if (!cachedClient || lastUsedUrl !== url || lastUsedKey !== key) {
+    try {
+      cachedClient = createClient(url, key, {
+        auth: { persistSession: false },
+      });
+      lastUsedUrl = url;
+      lastUsedKey = key;
+    } catch (err: any) {
+      console.error('[Supabase] Client instantiation error:', err.message);
+      return null;
+    }
   }
   return cachedClient;
 }
@@ -72,13 +184,25 @@ export async function checkSupabaseConnection(): Promise<{
   message: string;
   tableExists?: boolean;
 }> {
+  const projectUrl = getSupabaseProjectUrl();
+  const key = getStoredKey();
+
+  if (!key) {
+    return {
+      connected: false,
+      projectUrl,
+      hasKey: false,
+      message: 'Supabase publishable key is not configured yet. Add it in environment or Admin Console.',
+    };
+  }
+
   const client = getSupabaseClient();
   if (!client) {
     return {
       connected: false,
-      projectUrl: SUPABASE_PROJECT_URL,
-      hasKey: false,
-      message: 'Supabase publishable key is not configured yet. Add it in environment or Admin Console.',
+      projectUrl,
+      hasKey: true,
+      message: 'Failed to create Supabase client. Please check the Project URL and key.',
     };
   }
 
@@ -89,7 +213,7 @@ export async function checkSupabaseConnection(): Promise<{
       if (error.code === '42P01') {
         return {
           connected: true,
-          projectUrl: SUPABASE_PROJECT_URL,
+          projectUrl,
           hasKey: true,
           tableExists: false,
           message: 'Connected to Supabase, but "website_content" table needs migration (run supabase-migration.sql).',
@@ -97,14 +221,14 @@ export async function checkSupabaseConnection(): Promise<{
       }
       return {
         connected: false,
-        projectUrl: SUPABASE_PROJECT_URL,
+        projectUrl,
         hasKey: true,
         message: `Supabase returned: ${error.message} (code: ${error.code})`,
       };
     }
     return {
       connected: true,
-      projectUrl: SUPABASE_PROJECT_URL,
+      projectUrl,
       hasKey: true,
       tableExists: true,
       message: 'Supabase database is connected and active.',
@@ -112,7 +236,7 @@ export async function checkSupabaseConnection(): Promise<{
   } catch (err: any) {
     return {
       connected: false,
-      projectUrl: SUPABASE_PROJECT_URL,
+      projectUrl,
       hasKey: true,
       message: `Failed to reach Supabase: ${err.message}`,
     };

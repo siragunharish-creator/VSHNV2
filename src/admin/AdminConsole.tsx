@@ -99,6 +99,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
 
   // Supabase states
   const [supabaseKeyInput, setSupabaseKeyInput] = useState('');
+  const [supabaseUrlInput, setSupabaseUrlInput] = useState('');
   const [isUpdatingSupabase, setIsUpdatingSupabase] = useState(false);
   const [supabaseSyncMessage, setSupabaseSyncMessage] = useState<string | null>(null);
   const [copiedMigration, setCopiedMigration] = useState(false);
@@ -2864,12 +2865,12 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                 {/* Connection Status Card */}
                 <div className="p-6 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-xs space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone-200 dark:border-stone-800">
-                    <div>
-                      <span className="text-[11px] uppercase font-bold text-stone-400 tracking-wider block">
-                        Supabase Project URL
+                    <div className="flex-1">
+                      <span className="text-[11px] uppercase font-bold text-stone-400 tracking-wider block mb-1">
+                        Active Supabase Project URL
                       </span>
-                      <span className="text-sm font-mono font-bold text-stone-900 dark:text-stone-100">
-                        https://gybfpnothqoptffhmont.supabase.co
+                      <span className="text-sm font-mono font-bold text-stone-900 dark:text-stone-100 break-all">
+                        {supabaseStatus?.projectUrl || 'https://uohziuryqsvbdbryclff.supabase.co'}
                       </span>
                     </div>
 
@@ -2941,43 +2942,65 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                   </div>
                 </div>
 
-                {/* Key Configuration Card */}
+                {/* Configuration Card (URL & Key) */}
                 <div className="p-6 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-xs space-y-4">
                   <div>
                     <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                      Supabase Publishable / Anon Key
+                      Supabase Credentials & Project Configuration
                     </h3>
                     <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-                      Enter the publishable anon key from your Supabase dashboard (Settings &rarr; API). Never enter your service_role or DB password here.
+                      Configure your Supabase Project URL and anon publishable key. URLs and keys are automatically sanitized (removing markdown formatting, extra brackets, and quotes).
                     </p>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
+                        Project URL
+                      </label>
+                      <input
+                        type="text"
+                        value={supabaseUrlInput !== '' ? supabaseUrlInput : (supabaseStatus?.projectUrl || '')}
+                        onChange={(e) => setSupabaseUrlInput(e.target.value)}
+                        placeholder="https://uohziuryqsvbdbryclff.supabase.co"
+                        className="w-full px-3 py-2.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
+                        Publishable / Anon Key
+                      </label>
                       <input
                         type="text"
                         value={supabaseKeyInput}
                         onChange={(e) => setSupabaseKeyInput(e.target.value)}
-                        placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                        className="flex-1 px-3 py-2.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-mono"
+                        placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... or sb_publishable_..."
+                        className="w-full px-3 py-2.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-mono"
                       />
+                    </div>
+
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        disabled={isUpdatingSupabase || !supabaseKeyInput.trim()}
+                        disabled={isUpdatingSupabase || (!supabaseKeyInput.trim() && !supabaseUrlInput.trim())}
                         onClick={async () => {
                           setIsUpdatingSupabase(true);
-                          const res = await updateSupabaseConfig(supabaseKeyInput.trim());
+                          const res = await updateSupabaseConfig(
+                            supabaseKeyInput.trim() || undefined,
+                            supabaseUrlInput.trim() || undefined
+                          );
                           setIsUpdatingSupabase(false);
                           if (res.success) {
-                            showToast('success', 'Supabase publishable key saved and verified!');
+                            showToast('success', 'Supabase configuration saved and verified!');
                             setSupabaseKeyInput('');
                           } else {
-                            showToast('error', res.error || 'Failed to save Supabase key.');
+                            showToast('error', res.error || 'Failed to update Supabase configuration.');
                           }
                         }}
                         className="px-4 py-2.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-stone-950 transition-colors disabled:opacity-50 cursor-pointer"
                       >
-                        {isUpdatingSupabase ? 'Connecting...' : 'Save & Connect Key'}
+                        {isUpdatingSupabase ? 'Connecting...' : 'Save & Connect'}
                       </button>
                     </div>
 

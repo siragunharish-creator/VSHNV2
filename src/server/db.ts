@@ -10,6 +10,7 @@ import {
   loadEnquiriesFromSupabase,
   checkSupabaseConnection,
   setSupabaseKey,
+  setSupabaseConfig,
 } from './supabase.ts';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
@@ -764,6 +765,14 @@ export class DatabaseService {
 
   public setSupabasePublishableKey(key: string) {
     const res = setSupabaseKey(key);
+    if (res.success) {
+      this.initSupabaseSync().catch(console.warn);
+    }
+    return res;
+  }
+
+  public setSupabaseConfig(options: { publishableKey?: string; projectUrl?: string }) {
+    const res = setSupabaseConfig(options);
     if (res.success) {
       this.initSupabaseSync().catch(console.warn);
     }

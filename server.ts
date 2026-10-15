@@ -460,12 +460,12 @@ app.get('/api/admin/supabase-status', requireAdminAuth, async (_req: Request, re
 });
 
 app.post('/api/admin/supabase-config', requireAdminAuth, async (req: Request, res: Response) => {
-  const { publishableKey } = req.body;
-  if (!publishableKey) {
-    res.status(400).json({ error: 'Publishable key is required.' });
+  const { publishableKey, projectUrl } = req.body;
+  if (!publishableKey && !projectUrl) {
+    res.status(400).json({ error: 'Publishable key or Project URL is required.' });
     return;
   }
-  const result = db.setSupabasePublishableKey(publishableKey);
+  const result = db.setSupabaseConfig({ publishableKey, projectUrl });
   if (!result.success) {
     res.status(400).json({ error: result.error });
     return;

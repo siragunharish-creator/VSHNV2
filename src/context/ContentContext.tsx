@@ -49,7 +49,7 @@ interface ContentContextType {
     tableExists?: boolean;
   } | null;
   checkSupabase: () => Promise<void>;
-  updateSupabaseConfig: (key: string) => Promise<{ success: boolean; error?: string }>;
+  updateSupabaseConfig: (key?: string, projectUrl?: string) => Promise<{ success: boolean; error?: string }>;
   syncSupabaseNow: () => Promise<{ success: boolean; message: string }>;
 }
 
@@ -111,7 +111,10 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch {}
   }, [token]);
 
-  const updateSupabaseConfig = async (key: string): Promise<{ success: boolean; error?: string }> => {
+  const updateSupabaseConfig = async (
+    key?: string,
+    projectUrl?: string
+  ): Promise<{ success: boolean; error?: string }> => {
     if (!token) return { success: false, error: 'Unauthorized' };
     try {
       const res = await fetch('/api/admin/supabase-config', {
@@ -120,7 +123,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ publishableKey: key }),
+        body: JSON.stringify({ publishableKey: key, projectUrl }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -128,7 +131,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await refreshContent();
         return { success: true };
       }
-      return { success: false, error: data.error || 'Failed to update Supabase key' };
+      return { success: false, error: data.error || 'Failed to update Supabase configuration' };
     } catch (err: any) {
       return { success: false, error: err.message };
     }
