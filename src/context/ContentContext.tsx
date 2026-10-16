@@ -25,7 +25,7 @@ interface ContentContextType {
   uploadImage: (
     fileOrBase64: File | { base64: string; name: string },
     metadata?: { title?: string; category?: MediaItem['category']; altText?: string }
-  ) => Promise<{ success: boolean; url?: string; error?: string }>;
+  ) => Promise<{ success: boolean; url?: string; error?: string; mediaItem?: MediaItem }>;
   deleteMedia: (id: string) => Promise<boolean>;
   submitContactForm: (data: {
     name: string;
@@ -517,7 +517,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const uploadImage = async (
     fileOrBase64: File | { base64: string; name: string },
     metadata?: { title?: string; category?: MediaItem['category']; altText?: string }
-  ): Promise<{ success: boolean; url?: string; error?: string }> => {
+  ): Promise<{ success: boolean; url?: string; error?: string; mediaItem?: MediaItem }> => {
     if (!token) return { success: false, error: 'Unauthorized. Please log in as administrator.' };
     try {
       let uploadedUrl: string | undefined;
@@ -600,7 +600,9 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         sizeBytes: uploadedSizeBytes,
       };
 
-      const updatedLibrary = [newMediaItem, ...(content.mediaLibrary || [])];
+      // Filter out any existing item with the same URL before prepending to prevent double entries
+      const withoutDupes = (content.mediaLibrary || []).filter((m) => m.url !== uploadedUrl);
+      const updatedLibrary = [newMediaItem, ...withoutDupes];
       const updatedContent: WebsiteContent = {
         ...content,
         mediaLibrary: updatedLibrary,
@@ -623,7 +625,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         });
       } catch {}
 
-      return { success: true, url: uploadedUrl };
+      return { success: true, url: uploadedUrl, mediaItem: newMediaItem };
     } catch (err: any) {
       return { success: false, error: err.message || 'Image upload failed' };
     }

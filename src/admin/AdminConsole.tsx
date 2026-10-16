@@ -319,25 +319,30 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
     setIsUploading(false);
 
     if (res.success && res.url) {
-      showToast('success', `Image uploaded successfully: ${res.url}`);
-      // Also append to editableData.mediaLibrary if needed
-      setEditableData((prev) => ({
-        ...prev,
-        mediaLibrary: [
-          {
-            id: 'med-' + Date.now(),
-            url: res.url!,
-            title: file.name,
-            altText: file.name,
-            category: uploadCategory,
-            isActive: true,
-            status: 'active',
-            uploadedAt: new Date().toISOString(),
-            sizeBytes: file.size,
-          },
-          ...(prev.mediaLibrary || []),
-        ],
-      }));
+      showToast('success', 'Image uploaded successfully to media library.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setEditableData((prev) => {
+        const existing = prev.mediaLibrary || [];
+        // Prevent duplicate card if item already registered
+        if (existing.some((m) => m.url === res.url)) {
+          return prev;
+        }
+        const itemToAdd: MediaItem = res.mediaItem || {
+          id: 'med-' + Date.now(),
+          url: res.url!,
+          title: file.name,
+          altText: file.name,
+          category: uploadCategory,
+          isActive: true,
+          status: 'active',
+          uploadedAt: new Date().toISOString(),
+          sizeBytes: file.size,
+        };
+        return {
+          ...prev,
+          mediaLibrary: [itemToAdd, ...existing],
+        };
+      });
     } else {
       showToast('error', res.error || 'Failed to upload image.');
     }
@@ -1639,7 +1644,20 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
 
             {/* ================= 6. MEDIA LIBRARY & UPLOADS ================= */}
             {activeTab === 'media' && (() => {
-              const library = editableData.mediaLibrary || [];
+              const rawLibrary = editableData.mediaLibrary || [];
+              // Deduplicate library items by URL so no card is ever rendered twice
+              const seenUrls = new Set<string>();
+              const library: MediaItem[] = [];
+              for (const item of rawLibrary) {
+                if (item && item.url) {
+                  if (!seenUrls.has(item.url)) {
+                    seenUrls.add(item.url);
+                    library.push(item);
+                  }
+                } else if (item) {
+                  library.push(item);
+                }
+              }
               const totalCount = library.length;
               const activeCount = library.filter((m) => m.isActive !== false).length;
               const inactiveCount = library.filter((m) => m.isActive === false).length;

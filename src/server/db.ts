@@ -22,6 +22,24 @@ const ACTIVITY_FILE = path.join(DATA_DIR, 'activity.json');
 const AUTH_FILE = path.join(DATA_DIR, 'auth.json');
 const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
 
+// Deduplicate media items by URL to prevent duplicate uploads
+export function deduplicateMediaList<T extends { url?: string }>(list: T[]): T[] {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const item of list) {
+    if (item && item.url) {
+      if (!seen.has(item.url)) {
+        seen.add(item.url);
+        out.push(item);
+      }
+    } else if (item) {
+      out.push(item);
+    }
+  }
+  return out;
+}
+
 // Safe file helper for Vercel/serverless environments with read-only root filesystems
 function safeWriteFile(filePath: string, data: string): boolean {
   try {
@@ -245,7 +263,7 @@ export class DatabaseService {
           packages: Array.isArray(pub.packages) && pub.packages.length > 0 ? pub.packages : initialWebsiteContent.packages,
           testimonials: Array.isArray(pub.testimonials) && pub.testimonials.length > 0 ? pub.testimonials : initialWebsiteContent.testimonials,
           faqs: Array.isArray(pub.faqs) && pub.faqs.length > 0 ? pub.faqs : initialWebsiteContent.faqs,
-          mediaLibrary: Array.isArray(pub.mediaLibrary) && pub.mediaLibrary.length > 0 ? pub.mediaLibrary : initialWebsiteContent.mediaLibrary,
+          mediaLibrary: deduplicateMediaList(Array.isArray(pub.mediaLibrary) && pub.mediaLibrary.length > 0 ? pub.mediaLibrary : initialWebsiteContent.mediaLibrary),
           videoGallery: Array.isArray(pub.videoGallery) && pub.videoGallery.length > 0 ? pub.videoGallery : (initialWebsiteContent.videoGallery || []),
         };
         if (remote.draft) {
@@ -319,7 +337,7 @@ export class DatabaseService {
           packages: Array.isArray(parsed.packages) && parsed.packages.length > 0 ? parsed.packages : initialWebsiteContent.packages,
           testimonials: Array.isArray(parsed.testimonials) && parsed.testimonials.length > 0 ? parsed.testimonials : initialWebsiteContent.testimonials,
           faqs: Array.isArray(parsed.faqs) && parsed.faqs.length > 0 ? parsed.faqs : initialWebsiteContent.faqs,
-          mediaLibrary: Array.isArray(parsed.mediaLibrary) && parsed.mediaLibrary.length > 0 ? parsed.mediaLibrary : initialWebsiteContent.mediaLibrary,
+          mediaLibrary: deduplicateMediaList(Array.isArray(parsed.mediaLibrary) && parsed.mediaLibrary.length > 0 ? parsed.mediaLibrary : initialWebsiteContent.mediaLibrary),
           videoGallery: Array.isArray(parsed.videoGallery) && parsed.videoGallery.length > 0 ? parsed.videoGallery : (initialWebsiteContent.videoGallery || []),
         };
       } catch (err) {
@@ -603,7 +621,7 @@ export class DatabaseService {
       packages: Array.isArray(content.packages) && content.packages.length > 0 ? content.packages : this.content.packages,
       testimonials: Array.isArray(content.testimonials) && content.testimonials.length > 0 ? content.testimonials : this.content.testimonials,
       faqs: Array.isArray(content.faqs) && content.faqs.length > 0 ? content.faqs : this.content.faqs,
-      mediaLibrary: Array.isArray(content.mediaLibrary) && content.mediaLibrary.length > 0 ? content.mediaLibrary : this.content.mediaLibrary,
+      mediaLibrary: deduplicateMediaList(Array.isArray(content.mediaLibrary) && content.mediaLibrary.length > 0 ? content.mediaLibrary : this.content.mediaLibrary),
       videoGallery: Array.isArray(content.videoGallery) ? content.videoGallery : (this.content.videoGallery || initialWebsiteContent.videoGallery || []),
     };
 
@@ -864,16 +882,29 @@ export class DatabaseService {
     return this.content;
   }
 
-  // Add media item
+  // Add media item with URL duplicate check
   public addMedia(item: { url: string; title: string; altText: string; category: any; sizeBytes?: number }): void {
-    const newItem = {
-      id: 'med-' + Date.now(),
-      ...item,
-      uploadedAt: new Date().toISOString(),
-    };
-    this.content.mediaLibrary = [newItem, ...(this.content.mediaLibrary || [])];
+    if (!item || !item.url) return;
+    const library = this.content.mediaLibrary || [];
+    const existingIndex = library.findIndex((m) => m.url === item.url);
+    if (existingIndex >= 0) {
+      // Image already exists: update attributes without duplicating
+      library[existingIndex] = {
+        ...library[existingIndex],
+        ...item,
+        title: item.title || library[existingIndex].title,
+      };
+      this.content.mediaLibrary = deduplicateMediaList(library);
+    } else {
+      const newItem = {
+        id: 'med-' + Date.now(),
+        ...item,
+        uploadedAt: new Date().toISOString(),
+      };
+      this.content.mediaLibrary = deduplicateMediaList([newItem, ...library]);
+    }
     this.saveContentDirect(this.content);
-    this.logActivity('Image Uploaded', `New image added: ${item.title || 'Untitled'}`, 'admin');
+    this.logActivity('Image Uploaded', `Image saved: ${item.title || 'Untitled'}`, 'admin');
   }
 
   // Delete media item

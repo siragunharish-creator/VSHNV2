@@ -95,6 +95,14 @@
       "metaTitle": "VSHN Builders Chennai | Premium Home Construction & Architectural Design",
       "metaDescription": "Trusted turnkey home builders in Chennai with 20+ years experience. Transparent rates from ₹2,350/sq.ft, on-time milestone delivery, 2D architectural plans, and 3D designs.",
       "keywords": "builders in chennai, turnkey construction chennai, independent house builder, villa construction, vshn builders"
+    },
+    "estimatedInvestment": {
+      "minAmount": 2500000,
+      "maxAmount": 4500000,
+      "currency": "₹",
+      "currencyCode": "INR",
+      "shortDescription": "Estimated turnkey construction budget; final cost depends on design, materials, specifications, and site conditions.",
+      "isActive": true
     }
   },
   "projects": [
@@ -601,6 +609,17 @@
   ],
   "mediaLibrary": [
     {
+      "id": "med-1792141087933",
+      "url": "https://uohziuryqsvbdbryclff.supabase.co/storage/v1/object/public/media/1792141067938-ddba5b27-Gemini_Generated_Image_2ug9ij2ug9ij2ug9.png",
+      "title": "Gemini_Generated_Image_2ug9ij2ug9ij2ug9.png",
+      "status": "active",
+      "altText": "Gemini_Generated_Image_2ug9ij2ug9ij2ug9.png",
+      "category": "exterior",
+      "isActive": true,
+      "sizeBytes": 9452974,
+      "uploadedAt": "2026-10-16T08:58:07.933Z"
+    },
+    {
       "id": "med-1792122067050",
       "url": "https://uohziuryqsvbdbryclff.supabase.co/storage/v1/object/public/vshn-media/1792122065975-Gemini_Generated_Image_66l2dk66l2dk66l2.png",
       "title": "VSHN",
@@ -648,6 +667,80 @@
       "altText": "Photorealistic 3D visualization render of a luxury villa",
       "category": "3d_render",
       "uploadedAt": "2025-01-05T00:00:00.000Z"
+    }
+  ],
+  "videoGallery": [
+    {
+      "id": "vid-1",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "title": "Tondiarpet G+2 Luxury Villa Handover Tour",
+      "platform": "youtube",
+      "createdAt": "2025-01-10T10:00:00.000Z",
+      "updatedAt": "2025-01-10T10:00:00.000Z",
+      "description": "Complete walkthrough of a 2,850 sq.ft contemporary residence near New Washermenpet Metro.",
+      "isPublished": true,
+      "displayOrder": 1,
+      "thumbnailUrl": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1200&auto=format&fit=crop"
+    },
+    {
+      "id": "vid-2",
+      "url": "https://www.instagram.com/reel/DF2N8c5z0fL/",
+      "title": "Structural Concrete Pour & Quality Testing",
+      "platform": "instagram",
+      "createdAt": "2025-01-12T10:00:00.000Z",
+      "updatedAt": "2025-01-12T10:00:00.000Z",
+      "description": "M25 grade ready-mix concrete slab casting with ultrasonic pulse velocity quality assurance.",
+      "isPublished": true,
+      "displayOrder": 2,
+      "thumbnailUrl": "https://images.unsplash.com/photo-1541888946425-d0fbb18615f8?q=80&w=1200&auto=format&fit=crop"
+    },
+    {
+      "id": "vid-3",
+      "url": "https://www.youtube.com/watch?v=7wtfhZwyrcc",
+      "title": "Anna Nagar Custom Duplex Foundation Milestone",
+      "platform": "youtube",
+      "createdAt": "2025-01-15T10:00:00.000Z",
+      "updatedAt": "2025-01-15T10:00:00.000Z",
+      "description": "Earthquake-resistant pile foundation detailing and anti-termite barrier treatment.",
+      "isPublished": true,
+      "displayOrder": 3,
+      "thumbnailUrl": "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=1200&auto=format&fit=crop"
+    },
+    {
+      "id": "vid-4",
+      "url": "https://www.instagram.com/p/DF2N8c5z0fL/",
+      "title": "Teak Wood Carving & Main Door Fitting",
+      "platform": "instagram",
+      "createdAt": "2025-01-18T10:00:00.000Z",
+      "updatedAt": "2025-01-18T10:00:00.000Z",
+      "description": "Master carpenters finishing 100% solid Ghana teak entrance door with brass fittings.",
+      "isPublished": true,
+      "displayOrder": 4,
+      "thumbnailUrl": "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1200&auto=format&fit=crop"
+    },
+    {
+      "id": "vid-5",
+      "url": "https://www.youtube.com/watch?v=kJQP7kiw5Fk",
+      "title": "Modern Modular Kitchen & Granite Countertop Installation",
+      "platform": "youtube",
+      "createdAt": "2025-01-20T10:00:00.000Z",
+      "updatedAt": "2025-01-20T10:00:00.000Z",
+      "description": "Black pearl granite worktop with soft-close tandem drawers and stainless steel sink.",
+      "isPublished": true,
+      "displayOrder": 5,
+      "thumbnailUrl": "https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?q=80&w=1200&auto=format&fit=crop"
+    },
+    {
+      "id": "vid-6",
+      "url": "https://www.instagram.com/reel/DF2N8c5z0fL/",
+      "title": "Architectural Elevation Lighting Reveal",
+      "platform": "instagram",
+      "createdAt": "2025-01-22T10:00:00.000Z",
+      "updatedAt": "2025-01-22T10:00:00.000Z",
+      "description": "Evening facade illumination with waterproof warm LED wall washers and louvers.",
+      "isPublished": true,
+      "displayOrder": 6,
+      "thumbnailUrl": "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=1200&auto=format&fit=crop"
     }
   ],
   "faqs": [
