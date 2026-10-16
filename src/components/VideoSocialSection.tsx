@@ -204,8 +204,6 @@ export const VideoSocialSection: React.FC = () => {
                   src={instagramEmbed}
                   title="VSHN Builders Instagram Post"
                   className="w-full h-[480px] border-0"
-                  scrolling="no"
-                  allowTransparency
                 />
               ) : (
                 <div className="p-8 text-center space-y-4">

@@ -95,6 +95,14 @@ function sanitizeLoadedContent(data?: Partial<WebsiteContent> | null): WebsiteCo
         ...initialWebsiteContent.settings.seo,
         ...(data.settings?.seo || {}),
       },
+      estimatedInvestment: {
+        minAmount: data.settings?.estimatedInvestment?.minAmount ?? initialWebsiteContent.settings.estimatedInvestment?.minAmount ?? 2500000,
+        maxAmount: data.settings?.estimatedInvestment?.maxAmount ?? initialWebsiteContent.settings.estimatedInvestment?.maxAmount,
+        currency: data.settings?.estimatedInvestment?.currency ?? initialWebsiteContent.settings.estimatedInvestment?.currency ?? '₹',
+        currencyCode: data.settings?.estimatedInvestment?.currencyCode ?? initialWebsiteContent.settings.estimatedInvestment?.currencyCode ?? 'INR',
+        shortDescription: data.settings?.estimatedInvestment?.shortDescription ?? initialWebsiteContent.settings.estimatedInvestment?.shortDescription ?? '',
+        isActive: data.settings?.estimatedInvestment?.isActive ?? initialWebsiteContent.settings.estimatedInvestment?.isActive ?? true,
+      },
     },
     projects: Array.isArray(data.projects) && data.projects.length > 0 ? data.projects : initialWebsiteContent.projects,
     packages: Array.isArray(data.packages) && data.packages.length > 0 ? data.packages : initialWebsiteContent.packages,
@@ -102,6 +110,7 @@ function sanitizeLoadedContent(data?: Partial<WebsiteContent> | null): WebsiteCo
     testimonials: Array.isArray(data.testimonials) && data.testimonials.length > 0 ? data.testimonials : initialWebsiteContent.testimonials,
     faqs: Array.isArray(data.faqs) && data.faqs.length > 0 ? data.faqs : initialWebsiteContent.faqs,
     mediaLibrary: Array.isArray(data.mediaLibrary) && data.mediaLibrary.length > 0 ? data.mediaLibrary : initialWebsiteContent.mediaLibrary,
+    videoGallery: Array.isArray(data.videoGallery) ? data.videoGallery : (initialWebsiteContent.videoGallery || []),
   };
 }
 

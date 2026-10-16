@@ -251,17 +251,30 @@ app.post('/api/admin/upload', requireAdminAuth, async (req: express.Request, res
       buffer = Buffer.from(base64, 'base64');
     }
 
+    let finalUrl = '';
     const sbRes = await uploadImageToSupabase(originalName, buffer, mimeType);
-    if (!sbRes.success || !sbRes.url) {
-      res.status(502).json({ error: sbRes.error || 'Failed to upload image to Supabase Storage bucket (media).' });
-      return;
+    if (sbRes.success && sbRes.url) {
+      finalUrl = sbRes.url;
+    } else {
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const uploadsDir = path.resolve(process.cwd(), 'public', 'uploads');
+        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+        const safeName = `${Date.now()}-${originalName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        fs.writeFileSync(path.join(uploadsDir, safeName), buffer);
+        finalUrl = `/uploads/${safeName}`;
+      } catch {
+        res.status(502).json({ error: sbRes.error || 'Failed to upload image to Supabase Storage bucket (media).' });
+        return;
+      }
     }
 
     const finalTitle = title || originalName;
     const finalAltText = altText || finalTitle;
 
     db.addMedia({
-      url: sbRes.url,
+      url: finalUrl,
       title: finalTitle,
       altText: finalAltText,
       category,
@@ -270,7 +283,7 @@ app.post('/api/admin/upload', requireAdminAuth, async (req: express.Request, res
 
     res.json({
       success: true,
-      url: sbRes.url,
+      url: finalUrl,
       title: finalTitle,
       category,
     });

@@ -270,8 +270,34 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ onOpenConsultati
 
           {/* Results Summary Column */}
           <div className="lg:col-span-5 bg-stone-900 dark:bg-stone-900/90 text-white rounded-xl p-6 sm:p-8 border border-stone-800 shadow-lg">
+            {/* Administrator Configured Estimated Investment Showcase */}
+            {settings.estimatedInvestment && (
+              <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-stone-200">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-[11px] uppercase font-bold text-amber-400 tracking-wider">
+                    Estimated Investment
+                  </span>
+                  <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
+                    Baseline Range
+                  </span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-mono">
+                  {settings.estimatedInvestment.currency || '₹'}
+                  {settings.estimatedInvestment.minAmount?.toLocaleString('en-IN')}
+                  {settings.estimatedInvestment.maxAmount
+                    ? ` – ${settings.estimatedInvestment.currency || '₹'}${settings.estimatedInvestment.maxAmount?.toLocaleString('en-IN')}`
+                    : ''}
+                </div>
+                {settings.estimatedInvestment.shortDescription && (
+                  <p className="text-[11px] text-stone-300/90 mt-1.5 italic leading-relaxed">
+                    {settings.estimatedInvestment.shortDescription}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="text-xs uppercase font-semibold text-amber-400 tracking-wider mb-1">
-              Estimated Investment
+              Custom Calculator Estimate
             </div>
             <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight font-mono mb-1">
               {formatINR(totalCost)}

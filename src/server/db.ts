@@ -231,6 +231,14 @@ export class DatabaseService {
               ...initialWebsiteContent.settings.seo,
               ...(pub.settings?.seo || {}),
             },
+            estimatedInvestment: {
+              minAmount: pub.settings?.estimatedInvestment?.minAmount ?? initialWebsiteContent.settings.estimatedInvestment?.minAmount ?? 2500000,
+              maxAmount: pub.settings?.estimatedInvestment?.maxAmount ?? initialWebsiteContent.settings.estimatedInvestment?.maxAmount,
+              currency: pub.settings?.estimatedInvestment?.currency ?? initialWebsiteContent.settings.estimatedInvestment?.currency ?? '₹',
+              currencyCode: pub.settings?.estimatedInvestment?.currencyCode ?? initialWebsiteContent.settings.estimatedInvestment?.currencyCode ?? 'INR',
+              shortDescription: pub.settings?.estimatedInvestment?.shortDescription ?? initialWebsiteContent.settings.estimatedInvestment?.shortDescription ?? '',
+              isActive: pub.settings?.estimatedInvestment?.isActive ?? initialWebsiteContent.settings.estimatedInvestment?.isActive ?? true,
+            },
           },
           projects: Array.isArray(pub.projects) && pub.projects.length > 0 ? pub.projects : initialWebsiteContent.projects,
           services: Array.isArray(pub.services) && pub.services.length > 0 ? pub.services : initialWebsiteContent.services,
@@ -238,6 +246,7 @@ export class DatabaseService {
           testimonials: Array.isArray(pub.testimonials) && pub.testimonials.length > 0 ? pub.testimonials : initialWebsiteContent.testimonials,
           faqs: Array.isArray(pub.faqs) && pub.faqs.length > 0 ? pub.faqs : initialWebsiteContent.faqs,
           mediaLibrary: Array.isArray(pub.mediaLibrary) && pub.mediaLibrary.length > 0 ? pub.mediaLibrary : initialWebsiteContent.mediaLibrary,
+          videoGallery: Array.isArray(pub.videoGallery) && pub.videoGallery.length > 0 ? pub.videoGallery : (initialWebsiteContent.videoGallery || []),
         };
         if (remote.draft) {
           this.draftContent = remote.draft;
@@ -296,6 +305,14 @@ export class DatabaseService {
               ...initialWebsiteContent.settings.seo,
               ...(parsed.settings?.seo || {}),
             },
+            estimatedInvestment: {
+              minAmount: parsed.settings?.estimatedInvestment?.minAmount ?? initialWebsiteContent.settings.estimatedInvestment?.minAmount ?? 2500000,
+              maxAmount: parsed.settings?.estimatedInvestment?.maxAmount ?? initialWebsiteContent.settings.estimatedInvestment?.maxAmount,
+              currency: parsed.settings?.estimatedInvestment?.currency ?? initialWebsiteContent.settings.estimatedInvestment?.currency ?? '₹',
+              currencyCode: parsed.settings?.estimatedInvestment?.currencyCode ?? initialWebsiteContent.settings.estimatedInvestment?.currencyCode ?? 'INR',
+              shortDescription: parsed.settings?.estimatedInvestment?.shortDescription ?? initialWebsiteContent.settings.estimatedInvestment?.shortDescription ?? '',
+              isActive: parsed.settings?.estimatedInvestment?.isActive ?? initialWebsiteContent.settings.estimatedInvestment?.isActive ?? true,
+            },
           },
           projects: Array.isArray(parsed.projects) && parsed.projects.length > 0 ? parsed.projects : initialWebsiteContent.projects,
           services: Array.isArray(parsed.services) && parsed.services.length > 0 ? parsed.services : initialWebsiteContent.services,
@@ -303,6 +320,7 @@ export class DatabaseService {
           testimonials: Array.isArray(parsed.testimonials) && parsed.testimonials.length > 0 ? parsed.testimonials : initialWebsiteContent.testimonials,
           faqs: Array.isArray(parsed.faqs) && parsed.faqs.length > 0 ? parsed.faqs : initialWebsiteContent.faqs,
           mediaLibrary: Array.isArray(parsed.mediaLibrary) && parsed.mediaLibrary.length > 0 ? parsed.mediaLibrary : initialWebsiteContent.mediaLibrary,
+          videoGallery: Array.isArray(parsed.videoGallery) && parsed.videoGallery.length > 0 ? parsed.videoGallery : (initialWebsiteContent.videoGallery || []),
         };
       } catch (err) {
         console.error('Error reading content file, falling back to defaults', err);
@@ -489,6 +507,7 @@ export class DatabaseService {
       packages: this.content.packages.filter(pkg => pkg.isPublished),
       testimonials: this.content.testimonials.filter(t => t.isPublished),
       mediaLibrary: this.content.mediaLibrary,
+      videoGallery: (this.content.videoGallery || []).filter(v => v.isPublished).sort((a, b) => a.displayOrder - b.displayOrder),
       faqs: this.content.faqs,
     };
   }
@@ -547,6 +566,37 @@ export class DatabaseService {
           ...(this.content.settings?.seo || {}),
           ...(content.settings?.seo || {}),
         },
+        estimatedInvestment: {
+          minAmount:
+            content.settings?.estimatedInvestment?.minAmount ??
+            this.content.settings?.estimatedInvestment?.minAmount ??
+            initialWebsiteContent.settings.estimatedInvestment?.minAmount ??
+            2500000,
+          maxAmount:
+            content.settings?.estimatedInvestment?.maxAmount ??
+            this.content.settings?.estimatedInvestment?.maxAmount ??
+            initialWebsiteContent.settings.estimatedInvestment?.maxAmount,
+          currency:
+            content.settings?.estimatedInvestment?.currency ??
+            this.content.settings?.estimatedInvestment?.currency ??
+            initialWebsiteContent.settings.estimatedInvestment?.currency ??
+            '₹',
+          currencyCode:
+            content.settings?.estimatedInvestment?.currencyCode ??
+            this.content.settings?.estimatedInvestment?.currencyCode ??
+            initialWebsiteContent.settings.estimatedInvestment?.currencyCode ??
+            'INR',
+          shortDescription:
+            content.settings?.estimatedInvestment?.shortDescription ??
+            this.content.settings?.estimatedInvestment?.shortDescription ??
+            initialWebsiteContent.settings.estimatedInvestment?.shortDescription ??
+            '',
+          isActive:
+            content.settings?.estimatedInvestment?.isActive ??
+            this.content.settings?.estimatedInvestment?.isActive ??
+            initialWebsiteContent.settings.estimatedInvestment?.isActive ??
+            true,
+        },
       },
       projects: Array.isArray(content.projects) && content.projects.length > 0 ? content.projects : this.content.projects,
       services: Array.isArray(content.services) && content.services.length > 0 ? content.services : this.content.services,
@@ -554,6 +604,7 @@ export class DatabaseService {
       testimonials: Array.isArray(content.testimonials) && content.testimonials.length > 0 ? content.testimonials : this.content.testimonials,
       faqs: Array.isArray(content.faqs) && content.faqs.length > 0 ? content.faqs : this.content.faqs,
       mediaLibrary: Array.isArray(content.mediaLibrary) && content.mediaLibrary.length > 0 ? content.mediaLibrary : this.content.mediaLibrary,
+      videoGallery: Array.isArray(content.videoGallery) ? content.videoGallery : (this.content.videoGallery || initialWebsiteContent.videoGallery || []),
     };
 
     if (isPublish) {

@@ -14,6 +14,7 @@ import { ProcessSection } from './components/ProcessSection.tsx';
 import { TestimonialsSection } from './components/TestimonialsSection.tsx';
 import { GallerySection } from './components/GallerySection.tsx';
 import { VideoSocialSection } from './components/VideoSocialSection.tsx';
+import { VideoGallerySection } from './components/VideoGallerySection.tsx';
 import { FaqSection } from './components/FaqSection.tsx';
 import { ContactSection } from './components/ContactSection.tsx';
 import { Footer } from './components/Footer.tsx';
@@ -104,8 +105,8 @@ function MainSite() {
         {/* Gallery Section */}
         <GallerySection />
 
-        {/* YouTube & Instagram Social Media Player Section */}
-        <VideoSocialSection />
+        {/* VSHN BUILDERS Videos: Multiple Video Gallery for YouTube & Instagram */}
+        <VideoGallerySection />
 
         {/* FAQ Accordion */}
         <FaqSection />
@@ -126,7 +127,7 @@ function MainSite() {
       />
 
       {/* Floating Call & WhatsApp Desk */}
-      <FloatingActions />
+      <FloatingActions onOpenConsultationModal={() => handleOpenConsultation()} />
 
       {/* Interactive Consultation Modal */}
       <ConsultationModal

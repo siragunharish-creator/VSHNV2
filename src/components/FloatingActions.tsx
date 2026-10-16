@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Phone, MessageCircle, ArrowUp, CheckCircle2 } from 'lucide-react';
 import { useContent } from '../context/ContentContext.tsx';
 
-export const FloatingActions: React.FC = () => {
+interface FloatingActionsProps {
+  onOpenConsultationModal?: () => void;
+}
+
+export const FloatingActions: React.FC<FloatingActionsProps> = ({ onOpenConsultationModal }) => {
   const { content } = useContent();
   const { settings } = useContent().content;
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -66,6 +70,33 @@ export const FloatingActions: React.FC = () => {
           Call {settings.phone}
         </span>
       </a>
+
+      {/* Floating Get Free Consultation Button (Right side, directly above WhatsApp) */}
+      <button
+        type="button"
+        onClick={() => {
+          if (onOpenConsultationModal) {
+            onOpenConsultationModal();
+          } else {
+            window.open(
+              'https://wa.me/917092507374?text=Hi%20VSHN%20BUILDERS%2C%20I%20would%20like%20to%20get%20a%20free%20consultation%20for%20my%20house%20construction%20project.%20Please%20contact%20me.',
+              '_blank',
+              'noopener,noreferrer'
+            );
+          }
+        }}
+        aria-label="Get Free Consultation from VSHN BUILDERS"
+        title="Get Free Consultation"
+        className="group relative flex items-center gap-2.5 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full bg-[#0a192f] hover:bg-[#112240] text-white shadow-2xl border border-emerald-500/40 hover:border-emerald-400 transition-all duration-300 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 z-40 cursor-pointer"
+      >
+        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0">
+          <Phone className="w-3.5 h-3.5" />
+        </span>
+        <span className="text-xs sm:text-xs font-extrabold tracking-wide text-white">
+          Get Free Consultation
+        </span>
+        <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
+      </button>
 
       {/* Floating WhatsApp Button with Floating Pulse & Click Animation */}
       <div className="relative">

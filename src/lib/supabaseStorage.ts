@@ -191,26 +191,64 @@ export async function uploadDirectToSupabaseStorage(
     const supabase = getFrontendSupabase();
 
     let fileData: File | Blob;
-    let fileName: string;
+    let rawFileName: string;
     let contentType: string;
     let sizeBytes: number = 0;
 
     if (fileOrBase64 instanceof File) {
       fileData = fileOrBase64;
-      fileName = fileOrBase64.name;
+      rawFileName = fileOrBase64.name;
       contentType = fileOrBase64.type || 'image/jpeg';
       sizeBytes = fileOrBase64.size;
     } else {
-      fileName = fileOrBase64.name || `image-${Date.now()}.jpg`;
+      rawFileName = fileOrBase64.name || `image-${Date.now()}.jpg`;
       contentType = fileOrBase64.type || 'image/jpeg';
       fileData = base64ToBlob(fileOrBase64.base64, contentType);
       sizeBytes = fileData.size;
     }
 
-    // Sanitize file name with timestamp
-    const cleanFileName = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    // 1. File format validation (JPG, JPEG, PNG, WebP, SVG, GIF)
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.svg', '.gif'];
+    const validMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/gif'];
+    const lowerName = rawFileName.toLowerCase();
+    const hasValidExt = validExtensions.some(ext => lowerName.endsWith(ext));
+    const hasValidMime = validMimes.includes(contentType.toLowerCase());
 
-    // 1. Try uploading to preferred bucket 'media' (and 'vshn-media' as fallback)
+    if (!hasValidExt && !hasValidMime) {
+      return {
+        success: false,
+        error: 'Invalid file format. Please upload JPG, PNG, or WebP images.',
+      };
+    }
+
+    // 2. Oversized file validation (20MB limit)
+    const MAX_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
+    if (sizeBytes > MAX_SIZE_BYTES) {
+      const sizeMb = (sizeBytes / (1024 * 1024)).toFixed(1);
+      return {
+        success: false,
+        error: `File is too large (${sizeMb}MB). Maximum allowed image upload size is 20MB.`,
+      };
+    }
+
+    // 3. Generate unique path with timestamp, UUID, and safely sanitized filename
+    // Preserves extension and safely replaces spaces, Tamil characters, and symbols
+    const extMatch = lowerName.match(/\.([a-z0-9]+)$/);
+    const ext = extMatch ? `.${extMatch[1]}` : (contentType.includes('png') ? '.png' : contentType.includes('webp') ? '.webp' : '.jpg');
+    const baseWithoutExt = rawFileName.replace(/\.[^/.]+$/, '');
+    const cleanBase = baseWithoutExt
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 40) || 'upload';
+
+    const randomUuid = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID().slice(0, 8)
+      : Math.random().toString(36).substring(2, 10);
+
+    const cleanFileName = `${Date.now()}-${randomUuid}-${cleanBase}${ext}`;
+
+    // 4. Try uploading to preferred bucket 'media' (and 'vshn-media' as fallback)
     const targetBuckets = [preferredBucket, 'vshn-media'];
     let lastError: string | null = null;
     let successfulBucket: string | null = null;
@@ -221,7 +259,8 @@ export async function uploadDirectToSupabaseStorage(
           .from(bucket)
           .upload(cleanFileName, fileData, {
             contentType,
-            upsert: true,
+            cacheControl: '3600',
+            upsert: false, // Prevent accidental overwriting of existing assets
           });
 
         if (!error && data) {
@@ -231,7 +270,11 @@ export async function uploadDirectToSupabaseStorage(
 
         if (error) {
           lastError = error.message;
-          // If error is not "Bucket not found", don't loop needlessly
+          // If error is RLS violation or non-bucket error, break early
+          if (error.message.toLowerCase().includes('row-level security')) {
+            lastError = `Storage RLS policy blocked the upload. Please allow public uploads for the '${bucket}' bucket in Supabase Dashboard > Storage > Policies, or run the SQL in Admin Console > Supabase Database.`;
+            break;
+          }
           if (!error.message.toLowerCase().includes('bucket not found')) {
             break;
           }
@@ -254,7 +297,7 @@ export async function uploadDirectToSupabaseStorage(
       };
     }
 
-    // 2. Retrieve public URL
+    // 5. Retrieve public URL
     const { data: publicData } = supabase.storage
       .from(successfulBucket)
       .getPublicUrl(cleanFileName);

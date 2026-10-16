@@ -97,6 +97,28 @@ export const PackagesSection: React.FC<PackagesSectionProps> = ({ onOpenConsulta
           </p>
         </div>
 
+        {/* Estimated Investment Showcase */}
+        {settings.estimatedInvestment?.isActive !== false && settings.estimatedInvestment?.minAmount && (
+          <div className="mb-12 max-w-2xl mx-auto p-6 rounded-2xl bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/30 text-center shadow-xs">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[11px] font-bold uppercase tracking-wider mb-2">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span>Estimated Investment</span>
+            </div>
+            <div className="text-3xl sm:text-4xl font-extrabold text-stone-900 dark:text-white font-mono tracking-tight my-1">
+              {settings.estimatedInvestment.currency || '₹'}
+              {settings.estimatedInvestment.minAmount.toLocaleString('en-IN')}
+              {settings.estimatedInvestment.maxAmount
+                ? ` – ${settings.estimatedInvestment.currency || '₹'}${settings.estimatedInvestment.maxAmount.toLocaleString('en-IN')}`
+                : ''}
+            </div>
+            {settings.estimatedInvestment.shortDescription && (
+              <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-300 mt-2 italic max-w-xl mx-auto leading-relaxed">
+                {settings.estimatedInvestment.shortDescription}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* 3 Package Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch mb-12">
           {packages.map((pkg) => {

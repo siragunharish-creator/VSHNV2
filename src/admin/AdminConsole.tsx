@@ -41,6 +41,8 @@ import {
   Youtube,
   Database,
   Copy,
+  Coins,
+  Film,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useContent } from '../context/ContentContext.tsx';
@@ -50,6 +52,8 @@ import { VshnLogo } from '../components/VshnLogo.tsx';
 import { ImagePickerField } from '../components/ImagePickerField.tsx';
 import { MultiImagePickerField } from '../components/MultiImagePickerField.tsx';
 import { sanitizeFrontendSupabaseUrl, sanitizeFrontendSupabaseKey } from '../lib/supabaseStorage.ts';
+import { EstimatedInvestmentManager } from './EstimatedInvestmentManager.tsx';
+import { VideoGalleryManager } from './VideoGalleryManager.tsx';
 
 interface AdminConsoleProps {
   onClose: () => void;
@@ -62,8 +66,10 @@ type AdminTab =
   | 'projects'
   | 'services'
   | 'packages'
+  | 'investment'
   | 'media'
   | 'featuredMedia'
+  | 'videoGallery'
   | 'about'
   | 'contact'
   | 'testimonials'
@@ -135,7 +141,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
     }
   }, [content, draftContent]);
 
-  const [statusNotification, setStatusNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [statusNotification, setStatusNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [showPublishSuccessModal, setShowPublishSuccessModal] = useState<boolean>(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState<boolean>(false);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
@@ -249,7 +255,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
   };
 
   // Helper notification
-  const showToast = (type: 'success' | 'error', message: string) => {
+  const showToast = (type: 'success' | 'error' | 'info', message: string) => {
     setStatusNotification({ type, message });
     setTimeout(() => setStatusNotification(null), 5000);
   };
@@ -366,8 +372,10 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
     { id: 'projects', label: 'Projects & Portfolio', icon: <FolderKanban className="w-4 h-4" /> },
     { id: 'services', label: 'Services Manager', icon: <Wrench className="w-4 h-4" /> },
     { id: 'packages', label: 'Construction Packages', icon: <BadgePercent className="w-4 h-4" /> },
+    { id: 'investment', label: 'Estimated Investment', icon: <Coins className="w-4 h-4 text-amber-500" /> },
+    { id: 'videoGallery', label: 'Video Gallery Management', icon: <Film className="w-4 h-4 text-red-500" /> },
     { id: 'media', label: 'Media Library & Uploads', icon: <ImageIcon className="w-4 h-4" /> },
-    { id: 'featuredMedia', label: 'YouTube & Instagram Videos', icon: <Play className="w-4 h-4" /> },
+    { id: 'featuredMedia', label: 'Featured Walkthrough Links', icon: <Play className="w-4 h-4" /> },
     { id: 'about', label: 'About Us & Values', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'contact', label: 'Contact Details & SEO', icon: <PhoneCall className="w-4 h-4" /> },
     { id: 'testimonials', label: 'Testimonials / Reviews', icon: <MessageSquareQuote className="w-4 h-4" /> },
@@ -405,6 +413,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
               className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold animate-in fade-in ${
                 statusNotification.type === 'success'
                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                  : statusNotification.type === 'info'
+                  ? 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-300 dark:border-sky-800'
                   : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
               }`}
             >
@@ -1604,6 +1614,26 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                     </button>
                   </div>
                 </div>
+
+                {/* Clearly Labelled Section: Estimated Investment */}
+                <div className="pt-8 border-t-2 border-stone-200 dark:border-stone-800">
+                  <EstimatedInvestmentManager
+                    editableData={editableData}
+                    setEditableData={setEditableData}
+                    showToast={showToast}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ================= 5b. ESTIMATED INVESTMENT (DEDICATED SECTION) ================= */}
+            {activeTab === 'investment' && (
+              <div className="space-y-6">
+                <EstimatedInvestmentManager
+                  editableData={editableData}
+                  setEditableData={setEditableData}
+                  showToast={showToast}
+                />
               </div>
             )}
 
@@ -2170,8 +2200,6 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                               src={`https://www.instagram.com/p/${igCode}/embed/captioned/`}
                               title="Instagram Preview"
                               className="w-full h-full border-0"
-                              scrolling="no"
-                              allowTransparency
                             />
                           ) : (
                             <div className="p-4 text-center text-xs text-stone-400">
@@ -2258,6 +2286,15 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                 </div>
               );
             })()}
+
+            {/* ================= VIDEO GALLERY MANAGEMENT ================= */}
+            {activeTab === 'videoGallery' && (
+              <VideoGalleryManager
+                editableData={editableData}
+                setEditableData={setEditableData}
+                showToast={showToast}
+              />
+            )}
 
             {/* ================= 7. ABOUT US & VALUES ================= */}
             {activeTab === 'about' && (
@@ -3043,9 +3080,29 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                         type="button"
                         disabled={isUpdatingSupabase || (!supabaseKeyInput.trim() && !supabaseUrlInput.trim())}
                         onClick={async () => {
-                          setIsUpdatingSupabase(true);
-                          const cleanUrl = sanitizeFrontendSupabaseUrl(supabaseUrlInput.trim()) || supabaseUrlInput.trim() || undefined;
-                          const cleanKey = sanitizeFrontendSupabaseKey(supabaseKeyInput.trim()) || supabaseKeyInput.trim() || undefined;
+                          const rawUrl = supabaseUrlInput.trim();
+                          const rawKey = supabaseKeyInput.trim();
+                          
+                          let cleanUrl: string | undefined = undefined;
+                          if (rawUrl) {
+                            cleanUrl = sanitizeFrontendSupabaseUrl(rawUrl);
+                            if (!cleanUrl) {
+                              setIsUpdatingSupabase(false);
+                              showToast('error', 'Please enter a valid HTTP or HTTPS Supabase Project URL (e.g. https://xyz.supabase.co). Markdown brackets and spaces were detected or URL is invalid.');
+                              return;
+                            }
+                          }
+
+                          let cleanKey: string | undefined = undefined;
+                          if (rawKey) {
+                            cleanKey = sanitizeFrontendSupabaseKey(rawKey);
+                            if (!cleanKey || cleanKey.length < 20) {
+                              setIsUpdatingSupabase(false);
+                              showToast('error', 'Please enter a valid Supabase publishable/anon or service key.');
+                              return;
+                            }
+                          }
+
                           const res = await updateSupabaseConfig(cleanKey, cleanUrl);
                           setIsUpdatingSupabase(false);
                           if (res.success) {

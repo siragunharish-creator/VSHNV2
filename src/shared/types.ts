@@ -79,6 +79,27 @@ export interface SiteSettings {
     metaDescription?: string;
     keywords?: string;
   };
+  estimatedInvestment?: {
+    minAmount: number;
+    maxAmount?: number;
+    currency: string;
+    currencyCode: string;
+    shortDescription: string;
+    isActive?: boolean;
+  };
+}
+
+export interface VideoGalleryItem {
+  id: string;
+  title: string;
+  url: string;
+  platform: 'youtube' | 'instagram';
+  description?: string;
+  thumbnailUrl?: string;
+  isPublished: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Project {
@@ -193,6 +214,7 @@ export interface WebsiteContent {
   packages: PricingPackage[];
   testimonials: Testimonial[];
   mediaLibrary: MediaItem[];
+  videoGallery?: VideoGalleryItem[];
   faqs: Array<{
     id: string;
     question: string;
