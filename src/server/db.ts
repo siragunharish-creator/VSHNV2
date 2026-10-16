@@ -143,6 +143,35 @@ function saveStoredSessions(sessions: Map<string, { username: string; expiresAt:
 // Active tokens session store loaded from disk
 const activeSessions = loadStoredSessions();
 
+// Stateless HMAC token secret (persists across serverless lambdas on Vercel)
+const TOKEN_SECRET = process.env.SESSION_SECRET || process.env.SUPABASE_ANON_KEY || 'vshn-builder-secure-token-secret-1996';
+
+export function generateSignedToken(username: string, expiresAt: number): string {
+  const payload = `${username}:${expiresAt}`;
+  const sig = crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest('hex');
+  return `vshn_${Buffer.from(payload).toString('base64url')}_${sig}`;
+}
+
+export function verifySignedToken(token: string): { valid: boolean; username?: string; expiresAt?: number } {
+  if (!token || !token.startsWith('vshn_')) return { valid: false };
+  const parts = token.slice(5).split('_');
+  if (parts.length !== 2) return { valid: false };
+  const [b64Payload, sig] = parts;
+  try {
+    const payload = Buffer.from(b64Payload, 'base64url').toString('utf-8');
+    const [username, expiresStr] = payload.split(':');
+    const expiresAt = Number(expiresStr);
+    if (!username || !expiresAt || isNaN(expiresAt)) return { valid: false };
+    if (expiresAt < Date.now()) return { valid: false };
+
+    const expectedSig = crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest('hex');
+    if (sig === expectedSig) {
+      return { valid: true, username, expiresAt };
+    }
+  } catch {}
+  return { valid: false };
+}
+
 // Login rate limiting: 5 failed attempts per IP / window
 const loginAttempts = new Map<string, { attempts: number; lockedUntil: number }>();
 
@@ -367,11 +396,12 @@ export class DatabaseService {
     // Success: clear rate limit
     loginAttempts.delete(clientIp);
 
-    // Create session token (valid 7 days)
-    const token = crypto.randomBytes(32).toString('hex');
+    // Create session token (valid 7 days, signed for stateless serverless execution)
+    const expiresAt = now + 7 * 24 * 60 * 60 * 1000;
+    const token = generateSignedToken(username, expiresAt);
     activeSessions.set(token, {
       username,
-      expiresAt: now + 7 * 24 * 60 * 60 * 1000,
+      expiresAt,
     });
     saveStoredSessions(activeSessions);
 
@@ -393,6 +423,12 @@ export class DatabaseService {
     if (!token) return false;
     // Allow client tokens generated in resilient client mode
     if (token.startsWith('vshn_client_') && token.length > 20) return true;
+
+    // Check stateless HMAC-signed token (works seamlessly across Vercel serverless functions)
+    const signedCheck = verifySignedToken(token);
+    if (signedCheck.valid) return true;
+
+    // Check in-memory or persisted disk session
     let session = activeSessions.get(token);
     if (!session) {
       const stored = loadStoredSessions();

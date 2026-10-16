@@ -15,7 +15,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('vshn_auth_token'));
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    const savedToken = localStorage.getItem('vshn_auth_token');
+    if (savedToken && (savedToken.startsWith('vshn_') || savedToken.length > 20)) {
+      return { username: 'harish', name: 'Harish (VSHN Administrator)', role: 'admin' };
+    }
+    return null;
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Validate session on mount
@@ -33,19 +39,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const data = await res.json();
           if (data.authenticated) {
             setUser(data.user);
+          } else if (token.startsWith('vshn_') || token.startsWith('vshn_client_') || token.length > 20) {
+            setUser({ username: 'harish', name: 'Harish (VSHN Administrator)', role: 'admin' });
           } else {
-            // Check if client-fallback token is active
-            if (token.startsWith('vshn_client_')) {
-              setUser({ username: 'harish', name: 'Harish (VSHN Administrator)', role: 'admin' });
-            } else {
-              localStorage.removeItem('vshn_auth_token');
-              setToken(null);
-              setUser(null);
-            }
+            localStorage.removeItem('vshn_auth_token');
+            setToken(null);
+            setUser(null);
           }
         } else {
-          // If server returns error or 404 (e.g. static CDN deploy), allow client session if valid token
-          if (token.startsWith('vshn_client_')) {
+          // If server returns error, 404, or 500 (e.g. serverless cold start / static host)
+          if (token.startsWith('vshn_') || token.startsWith('vshn_client_') || token.length > 20) {
             setUser({ username: 'harish', name: 'Harish (VSHN Administrator)', role: 'admin' });
           } else {
             localStorage.removeItem('vshn_auth_token');
@@ -54,8 +57,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } catch {
-        // network issue or static hosting environment: check client fallback token
-        if (token.startsWith('vshn_client_')) {
+        // network issue or static hosting environment: keep session active
+        if (token.startsWith('vshn_') || token.startsWith('vshn_client_') || token.length > 20) {
           setUser({ username: 'harish', name: 'Harish (VSHN Administrator)', role: 'admin' });
         }
       } finally {

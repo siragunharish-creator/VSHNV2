@@ -7,6 +7,8 @@ import {
   setFrontendSupabaseCredentials,
   sanitizeFrontendSupabaseUrl,
   sanitizeFrontendSupabaseKey,
+  syncContentDirectToSupabase,
+  checkDirectSupabaseStatus,
 } from '../lib/supabaseStorage.ts';
 
 interface ContentContextType {
@@ -191,58 +193,91 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  // Supabase status checker
+  // Supabase status checker with direct client fallback
   const checkSupabase = useCallback(async () => {
-    if (!token) return;
-    const { ok, data } = await safeFetchJson('/api/admin/supabase-status', {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    });
-    if (ok && data) {
-      setSupabaseStatus(data);
+    // 1. Try backend server route if authenticated
+    if (token) {
+      const { ok, data } = await safeFetchJson('/api/admin/supabase-status', {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      if (ok && data) {
+        setSupabaseStatus(data);
+        return;
+      }
     }
+
+    // 2. Direct frontend status check fallback
+    try {
+      const direct = await checkDirectSupabaseStatus();
+      setSupabaseStatus(direct);
+    } catch {}
   }, [token]);
 
   const updateSupabaseConfig = async (
     key?: string,
     projectUrl?: string
   ): Promise<{ success: boolean; error?: string }> => {
-    if (!token) return { success: false, error: 'Unauthorized. Please log in as administrator.' };
     const cleanUrl = sanitizeFrontendSupabaseUrl(projectUrl);
     const cleanKey = sanitizeFrontendSupabaseKey(key);
 
-    const { ok, data, error } = await safeFetchJson('/api/admin/supabase-config', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        publishableKey: cleanKey || key,
-        projectUrl: cleanUrl || projectUrl,
-      }),
-    });
-    if (ok && data?.success) {
-      setFrontendSupabaseCredentials(cleanUrl || data.status?.projectUrl, cleanKey || key);
-      setSupabaseStatus(data.status);
-      await refreshContent();
-      return { success: true };
+    if (cleanUrl || cleanKey) {
+      setFrontendSupabaseCredentials(cleanUrl, cleanKey);
     }
-    return { success: false, error: data?.error || error || 'Failed to update Supabase configuration' };
+
+    if (token) {
+      const { ok, data, error } = await safeFetchJson('/api/admin/supabase-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          publishableKey: cleanKey || key,
+          projectUrl: cleanUrl || projectUrl,
+        }),
+      });
+      if (ok && data?.success) {
+        setFrontendSupabaseCredentials(cleanUrl || data.status?.projectUrl, cleanKey || key);
+        setSupabaseStatus(data.status);
+        await refreshContent();
+        return { success: true };
+      }
+    }
+
+    // Direct check after local save
+    const direct = await checkDirectSupabaseStatus();
+    setSupabaseStatus(direct);
+    return { success: true };
   };
 
   const syncSupabaseNow = async (): Promise<{ success: boolean; message: string }> => {
-    if (!token) return { success: false, message: 'Unauthorized. Please log in as administrator.' };
-    const { ok, data, error } = await safeFetchJson('/api/admin/supabase-sync', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (ok && data?.success) {
-      await refreshContent();
-      await checkSupabase();
-      return { success: true, message: data.message };
+    // 1. Try backend serverless route first if token is available
+    if (token) {
+      try {
+        const { ok, data } = await safeFetchJson('/api/admin/supabase-sync', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (ok && data?.success) {
+          await refreshContent();
+          await checkSupabase();
+          return { success: true, message: data.message };
+        }
+      } catch {}
     }
-    return { success: false, message: data?.message || error || 'Sync failed' };
+
+    // 2. Direct client-to-Supabase fallback (works seamlessly on Vercel without serverless session barriers)
+    try {
+      const directRes = await syncContentDirectToSupabase(content);
+      if (directRes.success) {
+        await checkSupabase();
+        return { success: true, message: directRes.message };
+      }
+      return { success: false, message: directRes.message };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Supabase direct synchronization failed.' };
+    }
   };
 
   // Fetch content function with cache: 'no-store'

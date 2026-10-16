@@ -275,3 +275,99 @@ export async function uploadDirectToSupabaseStorage(
     };
   }
 }
+
+/**
+ * Direct browser-to-Supabase synchronization for website content
+ */
+export async function syncContentDirectToSupabase(
+  content: any
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const supabase = getFrontendSupabase();
+    const payload = {
+      id: 'current',
+      published_content: content,
+      draft_content: content,
+      version: 1,
+      updated_at: new Date().toISOString(),
+      published_at: new Date().toISOString(),
+      updated_by: 'harish',
+    };
+
+    const { error } = await supabase.from('website_content').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      return { success: false, message: 'Supabase sync failed: ' + error.message };
+    }
+    return { success: true, message: 'All website content successfully synchronized with Supabase!' };
+  } catch (err: any) {
+    return { success: false, message: 'Supabase direct sync error: ' + err.message };
+  }
+}
+
+/**
+ * Direct browser-to-Supabase connection check
+ */
+export async function checkDirectSupabaseStatus(): Promise<{
+  connected: boolean;
+  projectUrl: string;
+  hasKey: boolean;
+  message: string;
+  tableExists?: boolean;
+}> {
+  try {
+    const supabase = getFrontendSupabase();
+    const projectUrl = sanitizeFrontendSupabaseUrl(
+      (import.meta as any).env?.VITE_SUPABASE_URL ||
+      localStorage.getItem('vshn_supabase_url') ||
+      DEFAULT_SUPABASE_URL
+    );
+
+    const { data, error } = await supabase
+      .from('website_content')
+      .select('id, version, updated_at')
+      .eq('id', 'current')
+      .maybeSingle();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return {
+          connected: true,
+          projectUrl,
+          hasKey: true,
+          message: 'Connected to Supabase! Table website_content is ready (click Sync to upload initial content).',
+          tableExists: true,
+        };
+      }
+      if (error.message?.includes('relation "public.website_content" does not exist') || error.code === '42P01') {
+        return {
+          connected: false,
+          projectUrl,
+          hasKey: true,
+          message: 'Connected to Supabase, but website_content table is missing. Run the SQL Migration in the SQL tab below.',
+          tableExists: false,
+        };
+      }
+      return {
+        connected: false,
+        projectUrl,
+        hasKey: true,
+        message: 'Supabase returned: ' + error.message,
+      };
+    }
+
+    return {
+      connected: true,
+      projectUrl,
+      hasKey: true,
+      message: `Connected & Active! Supabase database is online and synced (Version ${data?.version || 1}).`,
+      tableExists: true,
+    };
+  } catch (err: any) {
+    return {
+      connected: false,
+      projectUrl: DEFAULT_SUPABASE_URL,
+      hasKey: true,
+      message: 'Connection check failed: ' + err.message,
+    };
+  }
+}

@@ -1,5 +1,33 @@
 [
   {
+    "id": "act-1792125494287-824",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-10-16T04:38:14.287Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792124877619-28",
+    "action": "Image Uploaded",
+    "details": "New image added: WhatsApp Image 2026-10-08 at 5.32.01 PM.jpeg",
+    "timestamp": "2026-10-16T04:27:57.619Z",
+    "user": "admin"
+  },
+  {
+    "id": "act-1792124877333-400",
+    "action": "Image Uploaded",
+    "details": "New image added: WhatsApp Image 2026-10-08 at 5.32.01 PM.jpeg",
+    "timestamp": "2026-10-16T04:27:57.333Z",
+    "user": "admin"
+  },
+  {
+    "id": "act-1792124860200-947",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-10-16T04:27:40.200Z",
+    "user": "harish"
+  },
+  {
     "id": "act-1792123055507-280",
     "action": "Image Uploaded",
     "details": "New image added: Serverless Test",
