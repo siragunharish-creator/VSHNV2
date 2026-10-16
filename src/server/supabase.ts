@@ -418,19 +418,36 @@ export async function uploadImageToSupabase(
 
   try {
     const cleanName = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const { data, error } = await client.storage
-      .from('vshn-media')
-      .upload(cleanName, fileBuffer, {
-        contentType,
-        upsert: true,
-      });
+    const targetBuckets = ['media', 'vshn-media'];
+    let lastError: string | null = null;
+    let successfulBucket: string | null = null;
 
-    if (error) {
-      console.warn('[Supabase Storage] Upload warning:', error.message);
-      return { success: false, error: error.message };
+    for (const bucket of targetBuckets) {
+      const { data, error } = await client.storage
+        .from(bucket)
+        .upload(cleanName, fileBuffer, {
+          contentType,
+          upsert: true,
+        });
+
+      if (!error && data) {
+        successfulBucket = bucket;
+        break;
+      }
+
+      if (error) {
+        lastError = error.message;
+        if (!error.message.toLowerCase().includes('bucket not found')) {
+          break;
+        }
+      }
     }
 
-    const { data: publicData } = client.storage.from('vshn-media').getPublicUrl(cleanName);
+    if (!successfulBucket) {
+      return { success: false, error: lastError || 'Supabase storage bucket (media) not found.' };
+    }
+
+    const { data: publicData } = client.storage.from(successfulBucket).getPublicUrl(cleanName);
     return { success: true, url: publicData.publicUrl };
   } catch (err: any) {
     return { success: false, error: err.message };

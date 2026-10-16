@@ -1,5 +1,33 @@
 [
   {
+    "id": "act-1792123055507-280",
+    "action": "Image Uploaded",
+    "details": "New image added: Serverless Test",
+    "timestamp": "2026-10-16T03:57:35.507Z",
+    "user": "admin"
+  },
+  {
+    "id": "act-1792122122324-91",
+    "action": "Website Published",
+    "details": "Administrator published live changes to the website",
+    "timestamp": "2026-10-16T03:42:02.324Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1792122067051-537",
+    "action": "Image Uploaded",
+    "details": "New image added: Gemini_Generated_Image_66l2dk66l2dk66l2.png",
+    "timestamp": "2026-10-16T03:41:07.051Z",
+    "user": "admin"
+  },
+  {
+    "id": "act-1792122053274-261",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-10-16T03:40:53.274Z",
+    "user": "harish"
+  },
+  {
     "id": "act-1792039633470-146",
     "action": "New Customer Enquiry",
     "details": "Consultation request from Karthik Raman (9840123456)",

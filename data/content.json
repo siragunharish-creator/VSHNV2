@@ -601,6 +601,15 @@
   ],
   "mediaLibrary": [
     {
+      "id": "med-1792122067050",
+      "url": "https://uohziuryqsvbdbryclff.supabase.co/storage/v1/object/public/vshn-media/1792122065975-Gemini_Generated_Image_66l2dk66l2dk66l2.png",
+      "title": "VSHN",
+      "altText": "Gemini_Generated_Image_66l2dk66l2dk66l2.png",
+      "category": "exterior",
+      "sizeBytes": 1583834,
+      "uploadedAt": "2026-10-16T03:41:07.050Z"
+    },
+    {
       "id": "med-1",
       "url": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1600&auto=format&fit=crop",
       "title": "Modern Villa Front Elevation",

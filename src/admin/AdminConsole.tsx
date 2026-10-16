@@ -49,6 +49,7 @@ import { WebsiteContent, Project, Service, PricingPackage, Testimonial, MediaIte
 import { VshnLogo } from '../components/VshnLogo.tsx';
 import { ImagePickerField } from '../components/ImagePickerField.tsx';
 import { MultiImagePickerField } from '../components/MultiImagePickerField.tsx';
+import { sanitizeFrontendSupabaseUrl, sanitizeFrontendSupabaseKey } from '../lib/supabaseStorage.ts';
 
 interface AdminConsoleProps {
   onClose: () => void;
@@ -2995,10 +2996,23 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                       <input
                         type="text"
                         value={supabaseUrlInput !== '' ? supabaseUrlInput : (supabaseStatus?.projectUrl || '')}
-                        onChange={(e) => setSupabaseUrlInput(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const cleaned = sanitizeFrontendSupabaseUrl(val);
+                          setSupabaseUrlInput(cleaned && (val.includes('[') || val.includes('"') || val.includes("'")) ? cleaned : val);
+                        }}
+                        onBlur={() => {
+                          if (supabaseUrlInput) {
+                            const cleaned = sanitizeFrontendSupabaseUrl(supabaseUrlInput);
+                            if (cleaned) setSupabaseUrlInput(cleaned);
+                          }
+                        }}
                         placeholder="https://uohziuryqsvbdbryclff.supabase.co"
                         className="w-full px-3 py-2.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-mono"
                       />
+                      <p className="text-[10px] text-stone-400 dark:text-stone-500 mt-1">
+                        Plain HTTPS URL only (e.g. <span className="font-mono text-emerald-500">https://uohziuryqsvbdbryclff.supabase.co</span>, no markdown brackets or quotes).
+                      </p>
                     </div>
 
                     <div>
@@ -3008,7 +3022,17 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                       <input
                         type="text"
                         value={supabaseKeyInput}
-                        onChange={(e) => setSupabaseKeyInput(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const cleaned = sanitizeFrontendSupabaseKey(val);
+                          setSupabaseKeyInput(cleaned && (val.includes('[') || val.includes('"')) ? cleaned : val);
+                        }}
+                        onBlur={() => {
+                          if (supabaseKeyInput) {
+                            const cleaned = sanitizeFrontendSupabaseKey(supabaseKeyInput);
+                            if (cleaned) setSupabaseKeyInput(cleaned);
+                          }
+                        }}
                         placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... or sb_publishable_..."
                         className="w-full px-3 py-2.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs font-mono"
                       />
@@ -3020,14 +3044,14 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                         disabled={isUpdatingSupabase || (!supabaseKeyInput.trim() && !supabaseUrlInput.trim())}
                         onClick={async () => {
                           setIsUpdatingSupabase(true);
-                          const res = await updateSupabaseConfig(
-                            supabaseKeyInput.trim() || undefined,
-                            supabaseUrlInput.trim() || undefined
-                          );
+                          const cleanUrl = sanitizeFrontendSupabaseUrl(supabaseUrlInput.trim()) || supabaseUrlInput.trim() || undefined;
+                          const cleanKey = sanitizeFrontendSupabaseKey(supabaseKeyInput.trim()) || supabaseKeyInput.trim() || undefined;
+                          const res = await updateSupabaseConfig(cleanKey, cleanUrl);
                           setIsUpdatingSupabase(false);
                           if (res.success) {
                             showToast('success', 'Supabase configuration saved and verified!');
                             setSupabaseKeyInput('');
+                            if (cleanUrl) setSupabaseUrlInput(cleanUrl);
                           } else {
                             showToast('error', res.error || 'Failed to update Supabase configuration.');
                           }
@@ -3094,9 +3118,11 @@ ALTER TABLE public.contact_submissions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public can submit enquiries" ON public.contact_submissions FOR INSERT TO anon, authenticated WITH CHECK (true);
 CREATE POLICY "Manage enquiries" ON public.contact_submissions FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
 
+INSERT INTO storage.buckets (id, name, public) VALUES ('media', 'media', true) ON CONFLICT (id) DO UPDATE SET public = true;
 INSERT INTO storage.buckets (id, name, public) VALUES ('vshn-media', 'vshn-media', true) ON CONFLICT (id) DO UPDATE SET public = true;
-CREATE POLICY "Public can view media" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'vshn-media');
-CREATE POLICY "Allow upload to media bucket" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'vshn-media');`;
+CREATE POLICY "Public can view media" ON storage.objects FOR SELECT TO anon, authenticated, public USING (bucket_id IN ('media', 'vshn-media'));
+CREATE POLICY "Allow upload to media bucket" ON storage.objects FOR INSERT TO anon, authenticated, public WITH CHECK (bucket_id IN ('media', 'vshn-media'));
+CREATE POLICY "Allow update media bucket" ON storage.objects FOR UPDATE TO anon, authenticated, public USING (bucket_id IN ('media', 'vshn-media'));`;
 
                         navigator.clipboard?.writeText(sql);
                         setCopiedMigration(true);

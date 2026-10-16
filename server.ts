@@ -498,6 +498,16 @@ app.post('/api/admin/supabase-sync', requireAdminAuth, async (_req: Request, res
   res.json(result);
 });
 
+app.post('/api/admin/media', requireAdminAuth, (req: Request, res: Response) => {
+  const item = req.body;
+  if (!item || !item.url) {
+    res.status(400).json({ error: 'Media item url is required.' });
+    return;
+  }
+  db.addMedia(item);
+  res.json({ success: true, item });
+});
+
 app.delete('/api/admin/media/:id', requireAdminAuth, (req: Request, res: Response) => {
   const { id } = req.params;
   const deleted = db.deleteMedia(id);

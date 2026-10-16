@@ -2,6 +2,12 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { WebsiteContent, ContactSubmission, ActivityLog, MediaItem } from '../shared/types.ts';
 import { initialWebsiteContent } from '../server/defaultData.ts';
 import { useAuth } from './AuthContext.tsx';
+import {
+  uploadDirectToSupabaseStorage,
+  setFrontendSupabaseCredentials,
+  sanitizeFrontendSupabaseUrl,
+  sanitizeFrontendSupabaseKey,
+} from '../lib/supabaseStorage.ts';
 
 interface ContentContextType {
   content: WebsiteContent;
@@ -202,15 +208,22 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     projectUrl?: string
   ): Promise<{ success: boolean; error?: string }> => {
     if (!token) return { success: false, error: 'Unauthorized. Please log in as administrator.' };
+    const cleanUrl = sanitizeFrontendSupabaseUrl(projectUrl);
+    const cleanKey = sanitizeFrontendSupabaseKey(key);
+
     const { ok, data, error } = await safeFetchJson('/api/admin/supabase-config', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ publishableKey: key, projectUrl }),
+      body: JSON.stringify({
+        publishableKey: cleanKey || key,
+        projectUrl: cleanUrl || projectUrl,
+      }),
     });
     if (ok && data?.success) {
+      setFrontendSupabaseCredentials(cleanUrl || data.status?.projectUrl, cleanKey || key);
       setSupabaseStatus(data.status);
       await refreshContent();
       return { success: true };
@@ -456,49 +469,117 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   // Upload image
+  // Upload image directly to Supabase Storage bucket 'media' with automatic fallback
   const uploadImage = async (
     fileOrBase64: File | { base64: string; name: string },
     metadata?: { title?: string; category?: MediaItem['category']; altText?: string }
   ): Promise<{ success: boolean; url?: string; error?: string }> => {
-    if (!token) return { success: false, error: 'Unauthorized' };
+    if (!token) return { success: false, error: 'Unauthorized. Please log in as administrator.' };
     try {
-      let fetchPromise;
-      if (fileOrBase64 instanceof File) {
-        const formData = new FormData();
-        formData.append('image', fileOrBase64);
-        if (metadata?.title) formData.append('title', metadata.title);
-        if (metadata?.category) formData.append('category', metadata.category);
-        if (metadata?.altText) formData.append('altText', metadata.altText);
+      let uploadedUrl: string | undefined;
+      let uploadedSizeBytes: number = 0;
+      let primaryError: string | null = null;
 
-        fetchPromise = safeFetchJson('/api/admin/upload', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
+      // 1. Direct browser-to-Supabase Storage upload using @supabase/supabase-js
+      const uploadRes = await uploadDirectToSupabaseStorage(fileOrBase64, 'media');
+      if (uploadRes.success && uploadRes.url) {
+        uploadedUrl = uploadRes.url;
+        uploadedSizeBytes = uploadRes.sizeBytes || 0;
       } else {
-        fetchPromise = safeFetchJson('/api/admin/upload', {
+        primaryError = uploadRes.error || null;
+
+        // 2. Fallback: If direct upload encountered a network, CORS, or missing bucket error, try /api/admin/upload
+        try {
+          let base64Payload = '';
+          let fileName = '';
+
+          if (fileOrBase64 instanceof File) {
+            fileName = fileOrBase64.name;
+            base64Payload = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(fileOrBase64);
+            });
+          } else {
+            fileName = fileOrBase64.name;
+            base64Payload = fileOrBase64.base64;
+          }
+
+          const fallbackRes = await safeFetchJson('/api/admin/upload', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              base64: base64Payload,
+              name: fileName,
+              title: metadata?.title,
+              category: metadata?.category || 'exterior',
+              altText: metadata?.altText,
+            }),
+          });
+
+          if (fallbackRes.ok && fallbackRes.data?.url) {
+            uploadedUrl = fallbackRes.data.url;
+          }
+        } catch {
+          // If fallback fails, primary error is surfaced
+        }
+      }
+
+      if (!uploadedUrl) {
+        return {
+          success: false,
+          error:
+            primaryError ||
+            'Failed to upload image. Please ensure the Supabase Storage bucket "media" exists and is public.',
+        };
+      }
+
+      const rawName = fileOrBase64 instanceof File ? fileOrBase64.name : fileOrBase64.name;
+      const title = metadata?.title?.trim() || rawName || 'Uploaded Media';
+      const category = metadata?.category || 'exterior';
+      const altText = metadata?.altText?.trim() || title;
+
+      // 3. Create MediaItem and immediately update state
+      const newMediaItem: MediaItem = {
+        id: 'med-' + Date.now(),
+        url: uploadedUrl,
+        title,
+        altText,
+        category,
+        isActive: true,
+        status: 'active',
+        uploadedAt: new Date().toISOString(),
+        sizeBytes: uploadedSizeBytes,
+      };
+
+      const updatedLibrary = [newMediaItem, ...(content.mediaLibrary || [])];
+      const updatedContent: WebsiteContent = {
+        ...content,
+        mediaLibrary: updatedLibrary,
+      };
+
+      setContent(updatedContent);
+      try {
+        localStorage.setItem('vshn_live_content', JSON.stringify(updatedContent));
+      } catch {}
+
+      // 4. Persist new media item to backend database
+      try {
+        await safeFetchJson('/api/admin/media', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            base64: fileOrBase64.base64,
-            name: fileOrBase64.name,
-            title: metadata?.title || fileOrBase64.name,
-            category: metadata?.category || 'exterior',
-            altText: metadata?.altText,
-          }),
+          body: JSON.stringify(newMediaItem),
         });
-      }
+      } catch {}
 
-      const { ok, data, error } = await fetchPromise;
-      if (!ok || !data?.success) {
-        return { success: false, error: data?.error || error || 'Image upload failed' };
-      }
-
-      await refreshContent();
-      return { success: true, url: data.url };
+      return { success: true, url: uploadedUrl };
     } catch (err: any) {
       return { success: false, error: err.message || 'Image upload failed' };
     }

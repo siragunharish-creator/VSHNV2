@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import express from 'express';
 import dotenv from 'dotenv';
 import { db } from '../src/server/db.ts';
+import { uploadImageToSupabase } from '../src/server/supabase.ts';
 
 dotenv.config();
 
@@ -228,6 +229,64 @@ app.post('/api/admin/supabase-sync', requireAdminAuth, async (_req: express.Requ
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Sync failed: ' + err.message });
   }
+});
+
+app.post('/api/admin/upload', requireAdminAuth, async (req: express.Request, res: express.Response) => {
+  try {
+    const { base64, name, title, category = 'exterior', altText } = req.body || {};
+    if (!base64) {
+      res.status(400).json({ error: 'Missing image data. Please provide base64 payload.' });
+      return;
+    }
+
+    const matches = String(base64).match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    let buffer: Buffer;
+    let mimeType = 'image/jpeg';
+    const originalName = name || `upload-${Date.now()}.jpg`;
+
+    if (matches && matches.length === 3) {
+      mimeType = matches[1];
+      buffer = Buffer.from(matches[2], 'base64');
+    } else {
+      buffer = Buffer.from(base64, 'base64');
+    }
+
+    const sbRes = await uploadImageToSupabase(originalName, buffer, mimeType);
+    if (!sbRes.success || !sbRes.url) {
+      res.status(502).json({ error: sbRes.error || 'Failed to upload image to Supabase Storage bucket (media).' });
+      return;
+    }
+
+    const finalTitle = title || originalName;
+    const finalAltText = altText || finalTitle;
+
+    db.addMedia({
+      url: sbRes.url,
+      title: finalTitle,
+      altText: finalAltText,
+      category,
+      sizeBytes: buffer.length,
+    });
+
+    res.json({
+      success: true,
+      url: sbRes.url,
+      title: finalTitle,
+      category,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Upload failed: ' + err.message });
+  }
+});
+
+app.post('/api/admin/media', requireAdminAuth, (req: express.Request, res: express.Response) => {
+  const item = req.body;
+  if (!item || !item.url) {
+    res.status(400).json({ error: 'Media item url is required.' });
+    return;
+  }
+  db.addMedia(item);
+  res.json({ success: true, item });
 });
 
 app.delete('/api/admin/media/:id', requireAdminAuth, (req: express.Request, res: express.Response) => {
