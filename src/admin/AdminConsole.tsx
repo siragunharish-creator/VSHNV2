@@ -655,7 +655,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                         </span>
                       </div>
                       <p className="text-[11px] text-stone-400 mt-0.5">
-                        Project URL: <span className="font-mono text-emerald-400">https://gybfpnothqoptffhmont.supabase.co</span> · All saves, pricing, statistics & leads sync to Supabase.
+                        Project URL: <span className="font-mono text-emerald-400">{supabaseStatus?.projectUrl || 'https://uohziuryqsvbdbryclff.supabase.co'}</span> · All saves, pricing, statistics & leads sync to Supabase.
                       </p>
                     </div>
                   </div>

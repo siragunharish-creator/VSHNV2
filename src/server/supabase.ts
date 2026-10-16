@@ -90,7 +90,7 @@ function getStoredKey(): string {
     return envKey;
   }
 
-  return '';
+  return 'sb_publishable_mK278Ai4HDimimcP8nYkLw_4IXhQepC';
 }
 
 let cachedClient: SupabaseClient | null = null;

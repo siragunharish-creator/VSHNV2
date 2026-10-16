@@ -196,6 +196,40 @@ app.post('/api/admin/save-media-links', requireAdminAuth, async (req: express.Re
   }
 });
 
+// Supabase Database Management
+app.get('/api/admin/supabase-status', requireAdminAuth, async (_req: express.Request, res: express.Response) => {
+  try {
+    const status = await db.checkSupabaseStatus();
+    res.json(status);
+  } catch (err: any) {
+    res.status(500).json({ connected: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/supabase-config', requireAdminAuth, async (req: express.Request, res: express.Response) => {
+  const { publishableKey, projectUrl } = req.body || {};
+  if (!publishableKey && !projectUrl) {
+    res.status(400).json({ error: 'Publishable key or Project URL is required.' });
+    return;
+  }
+  const result = db.setSupabaseConfig({ publishableKey, projectUrl });
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  const status = await db.checkSupabaseStatus();
+  res.json({ success: true, status });
+});
+
+app.post('/api/admin/supabase-sync', requireAdminAuth, async (_req: express.Request, res: express.Response) => {
+  try {
+    const result = await db.syncToSupabase();
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Sync failed: ' + err.message });
+  }
+});
+
 app.delete('/api/admin/media/:id', requireAdminAuth, (req: express.Request, res: express.Response) => {
   const { id } = req.params;
   const deleted = db.deleteMedia(id);
