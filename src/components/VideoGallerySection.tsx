@@ -66,7 +66,10 @@ export const VideoGallerySection: React.FC = () => {
   };
 
   return (
-    <section id="videos" className="py-20 bg-stone-100/60 dark:bg-stone-900/40 border-b border-stone-200/80 dark:border-stone-800/80">
+    <section id="videos" data-section="videos" className="py-20 bg-stone-100/60 dark:bg-stone-900/40 border-b border-stone-200/80 dark:border-stone-800/80 scroll-mt-20 relative">
+      {/* Anchor aliases for #video and legacy #media-showcase */}
+      <span id="video" className="absolute -top-24 left-0 pointer-events-none" aria-hidden="true" />
+      <span id="media-showcase" className="absolute -top-24 left-0 pointer-events-none" aria-hidden="true" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center mb-10">

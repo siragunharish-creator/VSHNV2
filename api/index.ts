@@ -96,9 +96,12 @@ app.post('/api/auth/change-password', requireAdminAuth, (req: express.Request, r
 });
 
 // 2. Public Content
-app.get('/api/content', (_req: express.Request, res: express.Response) => {
+app.get('/api/content', async (_req: express.Request, res: express.Response) => {
   try {
-    const data = db.getPublicContent();
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    const data = await db.getFreshPublicContent();
     res.json(data);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to fetch content: ' + err.message });
@@ -273,7 +276,7 @@ app.post('/api/admin/upload', requireAdminAuth, async (req: express.Request, res
     const finalTitle = title || originalName;
     const finalAltText = altText || finalTitle;
 
-    db.addMedia({
+    await db.addMedia({
       url: finalUrl,
       title: finalTitle,
       altText: finalAltText,
@@ -292,19 +295,19 @@ app.post('/api/admin/upload', requireAdminAuth, async (req: express.Request, res
   }
 });
 
-app.post('/api/admin/media', requireAdminAuth, (req: express.Request, res: express.Response) => {
+app.post('/api/admin/media', requireAdminAuth, async (req: express.Request, res: express.Response) => {
   const item = req.body;
   if (!item || !item.url) {
     res.status(400).json({ error: 'Media item url is required.' });
     return;
   }
-  db.addMedia(item);
+  await db.addMedia(item);
   res.json({ success: true, item });
 });
 
-app.delete('/api/admin/media/:id', requireAdminAuth, (req: express.Request, res: express.Response) => {
+app.delete('/api/admin/media/:id', requireAdminAuth, async (req: express.Request, res: express.Response) => {
   const { id } = req.params;
-  const deleted = db.deleteMedia(id);
+  const deleted = await db.deleteMedia(id);
   if (deleted) {
     res.json({ success: true, message: 'Media removed.' });
   } else {

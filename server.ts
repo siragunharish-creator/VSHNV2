@@ -199,12 +199,12 @@ app.get('/api/content/stream', (req: Request, res: Response) => {
 });
 
 // 3. Public Content with Zero-Cache Headers (Single Source of Truth)
-app.get('/api/content', (_req: Request, res: Response) => {
+app.get('/api/content', async (_req: Request, res: Response) => {
   try {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    const data = db.getPublicContent();
+    const data = await db.getFreshPublicContent();
     res.json(data);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to fetch content: ' + err.message });
@@ -448,7 +448,7 @@ app.post('/api/admin/upload', requireAdminAuth, (req: Request, res: Response) =>
       const category = req.body.category || 'exterior';
       const altText = req.body.altText || title;
 
-      db.addMedia({
+      await db.addMedia({
         url: fileUrl,
         title,
         altText,
@@ -498,20 +498,24 @@ app.post('/api/admin/supabase-sync', requireAdminAuth, async (_req: Request, res
   res.json(result);
 });
 
-app.post('/api/admin/media', requireAdminAuth, (req: Request, res: Response) => {
+app.post('/api/admin/media', requireAdminAuth, async (req: Request, res: Response) => {
   const item = req.body;
   if (!item || !item.url) {
     res.status(400).json({ error: 'Media item url is required.' });
     return;
   }
-  db.addMedia(item);
+  await db.addMedia(item);
+  const publicContent = db.getPublicContent();
+  broadcastContentUpdate(publicContent);
   res.json({ success: true, item });
 });
 
-app.delete('/api/admin/media/:id', requireAdminAuth, (req: Request, res: Response) => {
+app.delete('/api/admin/media/:id', requireAdminAuth, async (req: Request, res: Response) => {
   const { id } = req.params;
-  const deleted = db.deleteMedia(id);
+  const deleted = await db.deleteMedia(id);
   if (deleted) {
+    const publicContent = db.getPublicContent();
+    broadcastContentUpdate(publicContent);
     res.json({ success: true, message: 'Media removed.' });
   } else {
     res.status(404).json({ error: 'Media not found.' });

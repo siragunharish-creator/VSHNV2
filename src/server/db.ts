@@ -530,6 +530,34 @@ export class DatabaseService {
     };
   }
 
+  // Fast fresh content getter with Supabase lookup for cold serverless invocations
+  public async getFreshPublicContent(): Promise<WebsiteContent> {
+    try {
+      const remote = await Promise.race([
+        loadContentFromSupabase(),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
+      ]);
+      if (remote && remote.published) {
+        const pub = remote.published;
+        if (Array.isArray(pub.mediaLibrary) && pub.mediaLibrary.length > 0) {
+          this.content.mediaLibrary = deduplicateMediaList(pub.mediaLibrary);
+        }
+        if (pub.settings) {
+          this.content.settings = { ...this.content.settings, ...pub.settings };
+        }
+        if (Array.isArray(pub.projects) && pub.projects.length > 0) {
+          this.content.projects = pub.projects;
+        }
+        if (Array.isArray(pub.videoGallery) && pub.videoGallery.length > 0) {
+          this.content.videoGallery = pub.videoGallery;
+        }
+      }
+    } catch (err: any) {
+      console.warn('[DB] Supabase quick check notice:', err?.message);
+    }
+    return this.getPublicContent();
+  }
+
   // Admin content getter (all items, including drafts)
   public getAdminData(): {
     published: WebsiteContent;
@@ -883,7 +911,7 @@ export class DatabaseService {
   }
 
   // Add media item with URL duplicate check
-  public addMedia(item: { url: string; title: string; altText: string; category: any; sizeBytes?: number }): void {
+  public async addMedia(item: { url: string; title: string; altText: string; category: any; sizeBytes?: number }): Promise<void> {
     if (!item || !item.url) return;
     const library = this.content.mediaLibrary || [];
     const existingIndex = library.findIndex((m) => m.url === item.url);
@@ -905,16 +933,31 @@ export class DatabaseService {
     }
     this.saveContentDirect(this.content);
     this.logActivity('Image Uploaded', `Image saved: ${item.title || 'Untitled'}`, 'admin');
+
+    // Authoritative sync to Supabase website_content table
+    try {
+      await upsertContentToSupabase(this.content, true, 'admin');
+    } catch (err: any) {
+      console.warn('[DB] Supabase addMedia sync notice:', err?.message);
+    }
   }
 
   // Delete media item
-  public deleteMedia(id: string): boolean {
+  public async deleteMedia(id: string): Promise<boolean> {
     const before = this.content.mediaLibrary.length;
     this.content.mediaLibrary = this.content.mediaLibrary.filter((m) => m.id !== id);
     if (this.draftContent) {
       this.draftContent.mediaLibrary = this.draftContent.mediaLibrary.filter((m) => m.id !== id);
     }
     this.saveContentDirect(this.content);
+
+    // Authoritative sync to Supabase website_content table
+    try {
+      await upsertContentToSupabase(this.content, true, 'admin');
+    } catch (err: any) {
+      console.warn('[DB] Supabase deleteMedia sync notice:', err?.message);
+    }
+
     return this.content.mediaLibrary.length < before;
   }
 

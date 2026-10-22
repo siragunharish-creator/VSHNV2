@@ -13,7 +13,6 @@ import { AboutSection } from './components/AboutSection.tsx';
 import { ProcessSection } from './components/ProcessSection.tsx';
 import { TestimonialsSection } from './components/TestimonialsSection.tsx';
 import { GallerySection } from './components/GallerySection.tsx';
-import { VideoSocialSection } from './components/VideoSocialSection.tsx';
 import { VideoGallerySection } from './components/VideoGallerySection.tsx';
 import { FaqSection } from './components/FaqSection.tsx';
 import { ContactSection } from './components/ContactSection.tsx';

@@ -80,7 +80,7 @@ export default async function handler(req: Request, res: Response) {
     const finalAltText = altText || finalTitle;
 
     // Record to database
-    db.addMedia({
+    await db.addMedia({
       url: fileUrl,
       title: finalTitle,
       altText: finalAltText,

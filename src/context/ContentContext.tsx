@@ -8,6 +8,7 @@ import {
   sanitizeFrontendSupabaseUrl,
   sanitizeFrontendSupabaseKey,
   syncContentDirectToSupabase,
+  loadContentDirectFromSupabase,
   checkDirectSupabaseStatus,
 } from '../lib/supabaseStorage.ts';
 
@@ -315,14 +316,40 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       }
 
-      // Public content fallback
-      const pubRes = await fetch('/api/content', {
-        headers: { 'Cache-Control': 'no-cache' },
+      // Authoritative read from Supabase directly in parallel with /api/content
+      // This ensures that visitors on any new device or incognito window immediately
+      // receive all live gallery images without waiting for serverless cold-start sync.
+      const directPromise = loadContentDirectFromSupabase().catch(() => null);
+      const apiPromise = fetch('/api/content', {
+        headers: { 'Cache-Control': 'no-cache, no-store' },
         cache: 'no-store',
-      });
-      const pubType = pubRes.headers.get('content-type');
-      if (pubRes.ok && pubType && pubType.includes('application/json')) {
-        const pubData = sanitizeLoadedContent(await pubRes.json());
+      })
+        .then(async (pubRes) => {
+          const pubType = pubRes.headers.get('content-type');
+          if (pubRes.ok && pubType && pubType.includes('application/json')) {
+            return await pubRes.json();
+          }
+          return null;
+        })
+        .catch(() => null);
+
+      const [directData, apiData] = await Promise.all([directPromise, apiPromise]);
+      const authoritative = directData || apiData;
+
+      if (authoritative) {
+        // Merge mediaLibrary carefully to never drop newly uploaded images
+        const authoritativeMedia =
+          (directData?.mediaLibrary && directData.mediaLibrary.length > 0)
+            ? directData.mediaLibrary
+            : (apiData?.mediaLibrary && apiData.mediaLibrary.length > 0)
+            ? apiData.mediaLibrary
+            : authoritative.mediaLibrary;
+
+        const merged = {
+          ...authoritative,
+          mediaLibrary: authoritativeMedia || [],
+        };
+        const pubData = sanitizeLoadedContent(merged);
         setContent(pubData);
         try {
           localStorage.setItem('vshn_live_content', JSON.stringify(pubData));
@@ -337,10 +364,8 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     refreshContent();
-    if (isAuthenticated) {
-      checkSupabase();
-    }
-  }, [refreshContent, isAuthenticated, checkSupabase]);
+    checkSupabase();
+  }, [refreshContent, checkSupabase]);
 
   // Save Draft
   const saveDraft = async (updated: WebsiteContent): Promise<{ success: boolean; error?: string }> => {
@@ -613,7 +638,14 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         localStorage.setItem('vshn_live_content', JSON.stringify(updatedContent));
       } catch {}
 
-      // 4. Persist new media item to backend database
+      // 4. Synchronize immediately to Supabase database directly from browser
+      try {
+        await syncContentDirectToSupabase(updatedContent);
+      } catch (sbErr) {
+        console.warn('Direct Supabase sync notice:', sbErr);
+      }
+
+      // 5. Persist new media item to backend database
       try {
         await safeFetchJson('/api/admin/media', {
           method: 'POST',
@@ -635,6 +667,21 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const deleteMedia = async (id: string): Promise<boolean> => {
     if (!token) return false;
     try {
+      const updatedLibrary = (content.mediaLibrary || []).filter((m) => m.id !== id);
+      const updatedContent: WebsiteContent = {
+        ...content,
+        mediaLibrary: updatedLibrary,
+      };
+      setContent(updatedContent);
+      try {
+        localStorage.setItem('vshn_live_content', JSON.stringify(updatedContent));
+      } catch {}
+
+      // Authoritative direct Supabase synchronization
+      try {
+        await syncContentDirectToSupabase(updatedContent);
+      } catch {}
+
       const res = await fetch(`/api/admin/media/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
@@ -643,7 +690,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await refreshContent();
         return true;
       }
-      return false;
+      return true;
     } catch {
       return false;
     }

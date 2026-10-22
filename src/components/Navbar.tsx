@@ -38,9 +38,29 @@ export const Navbar: React.FC<NavbarProps> = ({
     { label: 'Projects', href: '#projects' },
     { label: 'Packages', href: '#packages' },
     { label: 'Gallery', href: '#gallery' },
-    { label: 'Videos', href: '#media-showcase' },
+    { label: 'Videos', href: '#videos' },
     { label: 'Contact', href: '#contact' },
   ];
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith('#')) {
+      const targetId = href.slice(1);
+      const targetEl =
+        document.getElementById(targetId) ||
+        (targetId === 'videos' || targetId === 'video'
+          ? document.getElementById('videos') || document.getElementById('media-showcase')
+          : null);
+
+      if (targetEl) {
+        e.preventDefault();
+        targetEl.scrollIntoView({ behavior: 'smooth' });
+        try {
+          window.history.pushState(null, '', href);
+        } catch {}
+      }
+    }
+    setMobileMenuOpen(false);
+  };
 
   return (
     <header
@@ -53,7 +73,11 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4">
           {/* Logo */}
-          <a href="#home" className="flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 rounded-lg">
+          <a
+            href="#home"
+            onClick={(e) => handleNavClick(e, '#home')}
+            className="flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 rounded-lg"
+          >
             <VshnLogo size="md" showTagline={true} logoUrl={content.settings.logoUrl} />
           </a>
 
@@ -63,8 +87,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               <a
                 key={link.href}
                 href={link.href}
+                onClick={(e) => handleNavClick(e, link.href)}
                 className={`px-3 py-1.5 text-sm font-medium tracking-tight rounded-md transition-colors ${
-                  activeSection === link.href.slice(1)
+                  activeSection === link.href.slice(1) || (link.href === '#videos' && (activeSection === 'videos' || activeSection === 'video'))
                     ? 'text-amber-700 dark:text-amber-400 font-semibold'
                     : 'text-stone-700 dark:text-stone-300 hover:text-stone-950 dark:hover:text-white hover:bg-stone-100/60 dark:hover:bg-stone-900/60'
                 }`}
@@ -140,8 +165,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               <a
                 key={link.href}
                 href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2.5 rounded-lg text-sm font-medium text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-900 transition-colors"
+                onClick={(e) => handleNavClick(e, link.href)}
+                className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  activeSection === link.href.slice(1) || (link.href === '#videos' && (activeSection === 'videos' || activeSection === 'video'))
+                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold'
+                    : 'text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-900'
+                }`}
               >
                 {link.label}
               </a>

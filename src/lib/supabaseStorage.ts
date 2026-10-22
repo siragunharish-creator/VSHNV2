@@ -348,6 +348,32 @@ export async function syncContentDirectToSupabase(
 }
 
 /**
+ * Direct browser read of authoritative published content from Supabase
+ * Allows every visitor on any device / network to immediately fetch live gallery photos
+ * even if Vercel serverless functions are cold or cached.
+ */
+export async function loadContentDirectFromSupabase(): Promise<any | null> {
+  try {
+    const supabase = getFrontendSupabase();
+    const { data, error } = await supabase
+      .from('website_content')
+      .select('published_content, updated_at')
+      .eq('id', 'current')
+      .maybeSingle();
+
+    if (!error && data?.published_content) {
+      return data.published_content;
+    }
+    if (error) {
+      console.warn('[Supabase Frontend] Direct read notice:', error.message);
+    }
+  } catch (err) {
+    console.warn('[Supabase Frontend] Direct load exception:', err);
+  }
+  return null;
+}
+
+/**
  * Direct browser-to-Supabase connection check
  */
 export async function checkDirectSupabaseStatus(): Promise<{
