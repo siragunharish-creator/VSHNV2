@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Phone, MessageCircle, MapPin, Mail, Clock, Send, CheckCircle2, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { Phone, MessageCircle, MapPin, Mail, Clock, Send, CheckCircle2, AlertCircle, ArrowUpRight, Star } from 'lucide-react';
 import { useContent } from '../context/ContentContext.tsx';
+import { WhatsAppIcon } from './WhatsAppIcon.tsx';
+import { getWhatsAppUrl, getCallUrl, getActiveContacts } from '../lib/contactUtils.ts';
 
 interface ContactSectionProps {
   initialService?: string;
@@ -13,8 +15,9 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
   initialPackage = 'Deluxe',
   initialSqFt,
 }) => {
-  const { content, submitContactForm } = useContent();
+  const { content, primaryContact, contacts, submitContactForm } = useContent();
   const { settings, services, packages } = content;
+  const activeContacts = getActiveContacts(contacts);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -75,9 +78,9 @@ Hello VSHN Builders, I have submitted my consultation form on your website. Plea
       console.warn('Clipboard write prevented:', err);
     }
 
-    // 4. Automatically open WhatsApp prefilled in new tab
-    const cleanWhatsApp = (settings.whatsapp || '7092507374').replace(/\D/g, '');
-    const waUrl = `https://wa.me/91${cleanWhatsApp}?text=${encodeURIComponent(formattedSummary)}`;
+    // 4. Automatically open WhatsApp prefilled in new tab targeting primary contact
+    const targetPhone = primaryContact?.phoneNumber || settings.whatsapp || '7092507374';
+    const waUrl = getWhatsAppUrl(targetPhone, formattedSummary);
     const win = window.open(waUrl, '_blank', 'noopener,noreferrer');
     if (!win) {
       window.location.href = waUrl;
@@ -121,52 +124,80 @@ Hello VSHN Builders, I have submitted my consultation form on your website. Plea
           {/* Company Contact Information Column */}
           <div className="lg:col-span-5 space-y-6">
             <div className="bg-stone-50 dark:bg-stone-950 p-6 sm:p-8 rounded-2xl border border-stone-200/80 dark:border-stone-800 space-y-6">
-              <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 font-serif">
-                Direct Contact &amp; Office Visit
-              </h3>
+              <div>
+                <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 font-serif">
+                  Direct Contact &amp; Office Visit
+                </h3>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+                  Connect directly with our civil engineering founders and support desk.
+                </p>
+              </div>
 
-              <div className="space-y-4 text-xs sm:text-sm">
-                {/* Phone */}
-                <div className="flex items-start gap-3">
-                  <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
-                    <Phone className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="font-bold text-stone-900 dark:text-stone-100 block">Phone Consultation</span>
-                    <a
-                      href={`tel:${settings.phone.replace(/\s+/g, '')}`}
-                      className="text-stone-700 dark:text-stone-300 font-semibold hover:text-amber-600 transition-colors"
-                    >
-                      {settings.phone}
-                    </a>
-                    <span className="text-[11px] text-stone-500 dark:text-stone-400 block mt-0.5">
-                      Direct line with civil engineering founders
-                    </span>
-                  </div>
-                </div>
+              {/* All Active Business Contact Numbers */}
+              <div className="space-y-3.5">
+                <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider block">
+                  Active Contact Lines
+                </span>
+                {activeContacts.map((contact) => (
+                  <div
+                    key={contact.id}
+                    className={`p-3.5 rounded-xl border transition-all ${
+                      contact.isPrimary
+                        ? 'bg-amber-500/5 border-amber-300 dark:border-amber-700/60 shadow-xs'
+                        : 'bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="font-semibold text-xs sm:text-sm text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
+                        {contact.label}
+                        {contact.isPrimary && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-stone-950">
+                            <Star className="w-2.5 h-2.5 fill-current" />
+                            Primary
+                          </span>
+                        )}
+                      </span>
+                    </div>
 
-                {/* WhatsApp */}
-                <div className="flex items-start gap-3">
-                  <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-                    <MessageCircle className="w-5 h-5" />
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <span className="text-xs sm:text-sm font-mono font-bold text-stone-800 dark:text-stone-200">
+                        {contact.displayPhone}
+                      </span>
+
+                      <div className="flex items-center gap-1.5">
+                        {contact.isCallEnabled !== false && (
+                          <a
+                            href={getCallUrl(contact.phoneNumber)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-stone-900 hover:bg-stone-800 dark:bg-stone-800 dark:hover:bg-stone-700 text-white shadow-xs transition-colors"
+                            title={`Call ${contact.label}`}
+                          >
+                            <Phone className="w-3 h-3 text-amber-400" />
+                            <span>Call</span>
+                          </a>
+                        )}
+
+                        {contact.isWhatsAppEnabled !== false && (
+                          <a
+                            href={getWhatsAppUrl(
+                              contact.phoneNumber,
+                              'Hi VSHN Builders, I am interested in building my dream home. Please share the details.'
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition-colors"
+                            title={`WhatsApp ${contact.label}`}
+                          >
+                            <WhatsAppIcon className="w-3 h-3 text-white" />
+                            <span>WhatsApp</span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-bold text-stone-900 dark:text-stone-100 block">WhatsApp Desk</span>
-                    <a
-                      href={`https://wa.me/91${settings.whatsapp}?text=${encodeURIComponent(
-                        'Hello VSHN Builders, I would like to know more about your services and construction packages.'
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-stone-700 dark:text-stone-300 font-semibold hover:text-emerald-600 transition-colors"
-                    >
-                      +91 {settings.whatsapp}
-                    </a>
-                    <span className="text-[11px] text-stone-500 dark:text-stone-400 block mt-0.5">
-                      Instant estimate sharing &amp; plan reviews
-                    </span>
-                  </div>
-                </div>
+                ))}
+              </div>
+
+              <div className="space-y-4 text-xs sm:text-sm pt-2 border-t border-stone-200 dark:border-stone-800">
 
                 {/* Business Address & Metro */}
                 <div className="flex items-start gap-3">

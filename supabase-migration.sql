@@ -118,3 +118,57 @@ CREATE POLICY "Allow delete from media bucket"
     ON storage.objects FOR DELETE
     TO anon, authenticated
     USING (bucket_id = 'vshn-media');
+
+-- 5. BUSINESS CONTACTS MANAGEMENT TABLE (Multi-Contact & Configurable Primary)
+CREATE TABLE IF NOT EXISTS public.business_contacts (
+    id TEXT PRIMARY KEY,
+    label TEXT NOT NULL,
+    phone_number TEXT NOT NULL,
+    display_phone TEXT NOT NULL,
+    is_whatsapp_enabled BOOLEAN DEFAULT TRUE,
+    is_call_enabled BOOLEAN DEFAULT TRUE,
+    is_primary BOOLEAN DEFAULT FALSE,
+    display_order INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.business_contacts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view active business contacts" ON public.business_contacts;
+DROP POLICY IF EXISTS "Allow contact management" ON public.business_contacts;
+
+-- Public visitors can read active business contacts
+CREATE POLICY "Public can view active business contacts"
+    ON public.business_contacts
+    FOR SELECT
+    TO anon, authenticated
+    USING (is_active = true);
+
+-- Admin and backend can manage all contacts
+CREATE POLICY "Allow contact management"
+    ON public.business_contacts
+    FOR ALL
+    TO anon, authenticated, service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- Seed initial business contacts
+INSERT INTO public.business_contacts (
+    id, label, phone_number, display_phone, is_whatsapp_enabled, is_call_enabled, is_primary, display_order, is_active
+) VALUES
+('contact-1', 'Harish & Founders (Primary Desk)', '+917092507374', '+91 70925 07374', true, true, true, 1, true),
+('contact-2', 'Technical & Site Operations', '+918668181232', '+91 86681 81232', true, true, false, 2, true),
+('contact-3', 'Customer Enquiries & Estimation', '+918939538014', '+91 89395 38014', true, true, false, 3, true)
+ON CONFLICT (id) DO UPDATE SET
+    label = EXCLUDED.label,
+    phone_number = EXCLUDED.phone_number,
+    display_phone = EXCLUDED.display_phone,
+    is_whatsapp_enabled = EXCLUDED.is_whatsapp_enabled,
+    is_call_enabled = EXCLUDED.is_call_enabled,
+    is_primary = EXCLUDED.is_primary,
+    display_order = EXCLUDED.display_order,
+    is_active = EXCLUDED.is_active,
+    updated_at = NOW();
+

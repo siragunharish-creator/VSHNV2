@@ -2,7 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { initialWebsiteContent } from './defaultData.ts';
-import { WebsiteContent, ContactSubmission, ActivityLog, SiteSettings } from '../shared/types.ts';
+import { WebsiteContent, ContactSubmission, ActivityLog, SiteSettings, BusinessContact } from '../shared/types.ts';
+import { normalizePhoneNumber, formatDisplayPhone, getPrimaryContact } from '../lib/contactUtils.ts';
 import {
   loadContentFromSupabase,
   upsertContentToSupabase,
@@ -265,6 +266,11 @@ export class DatabaseService {
           faqs: Array.isArray(pub.faqs) && pub.faqs.length > 0 ? pub.faqs : initialWebsiteContent.faqs,
           mediaLibrary: deduplicateMediaList(Array.isArray(pub.mediaLibrary) && pub.mediaLibrary.length > 0 ? pub.mediaLibrary : initialWebsiteContent.mediaLibrary),
           videoGallery: Array.isArray(pub.videoGallery) && pub.videoGallery.length > 0 ? pub.videoGallery : (initialWebsiteContent.videoGallery || []),
+          contacts: Array.isArray(pub.contacts) && pub.contacts.length > 0
+            ? pub.contacts
+            : Array.isArray(pub.settings?.contacts) && pub.settings.contacts.length > 0
+            ? pub.settings.contacts
+            : (initialWebsiteContent.contacts || []),
         };
         if (remote.draft) {
           this.draftContent = remote.draft;
@@ -339,6 +345,11 @@ export class DatabaseService {
           faqs: Array.isArray(parsed.faqs) && parsed.faqs.length > 0 ? parsed.faqs : initialWebsiteContent.faqs,
           mediaLibrary: deduplicateMediaList(Array.isArray(parsed.mediaLibrary) && parsed.mediaLibrary.length > 0 ? parsed.mediaLibrary : initialWebsiteContent.mediaLibrary),
           videoGallery: Array.isArray(parsed.videoGallery) && parsed.videoGallery.length > 0 ? parsed.videoGallery : (initialWebsiteContent.videoGallery || []),
+          contacts: Array.isArray(parsed.contacts) && parsed.contacts.length > 0
+            ? parsed.contacts
+            : Array.isArray(parsed.settings?.contacts) && parsed.settings.contacts.length > 0
+            ? parsed.settings.contacts
+            : (initialWebsiteContent.contacts || []),
         };
       } catch (err) {
         console.error('Error reading content file, falling back to defaults', err);
@@ -526,6 +537,7 @@ export class DatabaseService {
       testimonials: this.content.testimonials.filter(t => t.isPublished),
       mediaLibrary: this.content.mediaLibrary,
       videoGallery: (this.content.videoGallery || []).filter(v => v.isPublished).sort((a, b) => a.displayOrder - b.displayOrder),
+      contacts: this.content.contacts || initialWebsiteContent.contacts,
       faqs: this.content.faqs,
     };
   }
@@ -550,6 +562,11 @@ export class DatabaseService {
         }
         if (Array.isArray(pub.videoGallery) && pub.videoGallery.length > 0) {
           this.content.videoGallery = pub.videoGallery;
+        }
+        if (Array.isArray(pub.contacts) && pub.contacts.length > 0) {
+          this.content.contacts = pub.contacts;
+        } else if (Array.isArray(pub.settings?.contacts) && pub.settings.contacts.length > 0) {
+          this.content.contacts = pub.settings.contacts;
         }
       }
     } catch (err: any) {
@@ -651,6 +668,11 @@ export class DatabaseService {
       faqs: Array.isArray(content.faqs) && content.faqs.length > 0 ? content.faqs : this.content.faqs,
       mediaLibrary: deduplicateMediaList(Array.isArray(content.mediaLibrary) && content.mediaLibrary.length > 0 ? content.mediaLibrary : this.content.mediaLibrary),
       videoGallery: Array.isArray(content.videoGallery) ? content.videoGallery : (this.content.videoGallery || initialWebsiteContent.videoGallery || []),
+      contacts: Array.isArray(content.contacts) && content.contacts.length > 0
+        ? content.contacts
+        : Array.isArray(content.settings?.contacts) && content.settings.contacts.length > 0
+        ? content.settings.contacts
+        : (this.content.contacts || initialWebsiteContent.contacts || []),
     };
 
     if (isPublish) {
@@ -959,6 +981,82 @@ export class DatabaseService {
     }
 
     return this.content.mediaLibrary.length < before;
+  }
+
+  // Update Business Contacts & Single Primary Contact
+  public async updateContacts(contacts: BusinessContact[], user: string): Promise<WebsiteContent> {
+    const rawList = Array.isArray(contacts) && contacts.length > 0 ? contacts : (initialWebsiteContent.contacts || []);
+    const sanitized: BusinessContact[] = rawList.map((c, idx) => ({
+      ...c,
+      id: c.id || `contact-${Date.now()}-${idx}`,
+      label: c.label ? c.label.trim() : `Contact ${idx + 1}`,
+      phoneNumber: normalizePhoneNumber(c.phoneNumber),
+      displayPhone: formatDisplayPhone(c.phoneNumber),
+      isWhatsAppEnabled: c.isWhatsAppEnabled !== false,
+      isCallEnabled: c.isCallEnabled !== false,
+      isPrimary: Boolean(c.isPrimary),
+      displayOrder: typeof c.displayOrder === 'number' ? c.displayOrder : idx + 1,
+      isActive: c.isActive !== false,
+      updatedAt: new Date().toISOString(),
+    }));
+
+    // Ensure only one active contact is marked primary
+    let hasActivePrimary = false;
+    for (const c of sanitized) {
+      if (c.isActive && c.isPrimary) {
+        if (!hasActivePrimary) {
+          hasActivePrimary = true;
+        } else {
+          c.isPrimary = false;
+        }
+      }
+    }
+    if (!hasActivePrimary) {
+      const firstActive = sanitized.find((c) => c.isActive) || sanitized[0];
+      if (firstActive) firstActive.isPrimary = true;
+    }
+
+    const primary = getPrimaryContact(sanitized);
+
+    this.content = {
+      ...this.content,
+      contacts: sanitized,
+      settings: {
+        ...this.content.settings,
+        contacts: sanitized,
+        phone: primary.displayPhone,
+        whatsapp: primary.phoneNumber.replace(/\D/g, '').replace(/^91/, ''),
+      },
+    };
+
+    if (this.draftContent) {
+      this.draftContent = {
+        ...this.draftContent,
+        contacts: sanitized,
+        settings: {
+          ...this.draftContent.settings,
+          contacts: sanitized,
+          phone: primary.displayPhone,
+          whatsapp: primary.phoneNumber.replace(/\D/g, '').replace(/^91/, ''),
+        },
+      };
+      safeWriteFile(DRAFT_FILE, JSON.stringify(this.draftContent, null, 2));
+    }
+
+    this.saveContentDirect(this.content);
+    this.logActivity(
+      'Business Contacts Updated',
+      `Updated ${sanitized.length} contact numbers. Primary: ${primary.label} (${primary.displayPhone})`,
+      user
+    );
+
+    try {
+      await upsertContentToSupabase(this.content, true, user);
+    } catch (err: any) {
+      console.warn('[DB] Supabase contacts sync notice:', err?.message);
+    }
+
+    return this.content;
   }
 
   // Enquiries

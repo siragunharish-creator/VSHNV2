@@ -211,6 +211,18 @@ app.get('/api/content', async (_req: Request, res: Response) => {
   }
 });
 
+// 3b. Public Business Contacts
+app.get('/api/contacts', async (_req: Request, res: Response) => {
+  try {
+    const content = await db.getFreshPublicContent();
+    const contacts = content.contacts || [];
+    const active = contacts.filter((c: any) => c.isActive !== false);
+    res.json({ success: true, contacts: active });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to fetch contacts: ' + err.message });
+  }
+});
+
 // 4. Contact Submissions (Public)
 app.post('/api/contact', async (req: Request, res: Response) => {
   const { name, phone, email, plotLocation, serviceNeeded, estimatedSqFt, preferredPackage, message } = req.body;
@@ -328,6 +340,27 @@ app.post('/api/admin/save-media-links', requireAdminAuth, async (req: Request, r
     });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to update links: ' + err.message });
+  }
+});
+
+// Dedicated Business Contacts & Primary Line Update
+app.post('/api/admin/contacts', requireAdminAuth, async (req: Request, res: Response) => {
+  try {
+    const { contacts } = req.body;
+    if (!Array.isArray(contacts)) {
+      res.status(400).json({ error: 'Contacts array is required' });
+      return;
+    }
+    await db.updateContacts(contacts, 'harish');
+    const publicContent = db.getPublicContent();
+    broadcastContentUpdate(publicContent);
+    res.json({
+      success: true,
+      message: 'Business contact numbers saved and published live!',
+      content: publicContent,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to update contacts: ' + err.message });
   }
 });
 

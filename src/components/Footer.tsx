@@ -3,6 +3,7 @@ import { Phone, MapPin, Mail, Sun, Moon, Shield, ArrowUpRight } from 'lucide-rea
 import { useTheme } from '../context/ThemeContext.tsx';
 import { useContent } from '../context/ContentContext.tsx';
 import { VshnLogo } from './VshnLogo.tsx';
+import { getCallUrl, getActiveContacts } from '../lib/contactUtils.ts';
 
 interface FooterProps {
   onOpenAdminLogin: () => void;
@@ -16,8 +17,9 @@ export const Footer: React.FC<FooterProps> = ({
   isAuthenticated,
 }) => {
   const { theme, toggleTheme } = useTheme();
-  const { content } = useContent();
+  const { content, primaryContact, contacts } = useContent();
   const { settings, packages } = content;
+  const activeContacts = getActiveContacts(contacts);
 
   return (
     <footer className="bg-stone-950 text-white pt-16 pb-12 border-t border-stone-800">
@@ -107,11 +109,25 @@ export const Footer: React.FC<FooterProps> = ({
                 {settings.address}
               </p>
             </div>
-            <div className="flex items-center gap-2 text-stone-300">
-              <Phone className="w-4 h-4 text-amber-500 shrink-0" />
-              <a href={`tel:${settings.phone.replace(/\s+/g, '')}`} className="hover:text-white font-semibold">
-                {settings.phone}
-              </a>
+            <div className="space-y-1.5 text-stone-300">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-amber-500 shrink-0" />
+                <a
+                  href={getCallUrl(primaryContact?.phoneNumber || settings.phone)}
+                  className="hover:text-amber-400 font-semibold transition-colors"
+                >
+                  {primaryContact?.displayPhone || settings.phone}
+                </a>
+                <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider ml-1">(Primary)</span>
+              </div>
+              {activeContacts.filter(c => !c.isPrimary).map(c => (
+                <div key={c.id} className="text-[11px] text-stone-400 pl-6 flex items-center justify-between">
+                  <span>{c.label}:</span>
+                  <a href={getCallUrl(c.phoneNumber)} className="hover:text-stone-200 font-mono transition-colors">
+                    {c.displayPhone}
+                  </a>
+                </div>
+              ))}
             </div>
 
             <div className="pt-2">

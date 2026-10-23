@@ -54,6 +54,8 @@ import { MultiImagePickerField } from '../components/MultiImagePickerField.tsx';
 import { sanitizeFrontendSupabaseUrl, sanitizeFrontendSupabaseKey } from '../lib/supabaseStorage.ts';
 import { EstimatedInvestmentManager } from './EstimatedInvestmentManager.tsx';
 import { VideoGalleryManager } from './VideoGalleryManager.tsx';
+import { ContactManager } from './ContactManager.tsx';
+import { getPrimaryContact } from '../lib/contactUtils.ts';
 
 interface AdminConsoleProps {
   onClose: () => void;
@@ -93,6 +95,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
     deleteEnquiry,
     resetToDefaults,
     updateMediaLinks,
+    updateContacts,
     isSaving,
     saveMessage,
     supabaseStatus,
@@ -382,7 +385,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
     { id: 'media', label: 'Media Library & Uploads', icon: <ImageIcon className="w-4 h-4" /> },
     { id: 'featuredMedia', label: 'Featured Walkthrough Links', icon: <Play className="w-4 h-4" /> },
     { id: 'about', label: 'About Us & Values', icon: <BookOpen className="w-4 h-4" /> },
-    { id: 'contact', label: 'Contact Details & SEO', icon: <PhoneCall className="w-4 h-4" /> },
+    { id: 'contact', label: 'Contact Numbers & Business Info', icon: <PhoneCall className="w-4 h-4 text-emerald-500" /> },
     { id: 'testimonials', label: 'Testimonials / Reviews', icon: <MessageSquareQuote className="w-4 h-4" /> },
     { id: 'enquiries', label: `Customer Enquiries (${enquiries.filter((e) => e.status === 'new').length})`, icon: <Inbox className="w-4 h-4" /> },
     { id: 'security', label: 'Account Security', icon: <Lock className="w-4 h-4" /> },
@@ -2427,46 +2430,48 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
 
             {/* ================= 8. CONTACT & SETTINGS ================= */}
             {activeTab === 'contact' && (
-              <div className="bg-white dark:bg-stone-900 rounded-xl p-6 sm:p-8 border border-stone-200 dark:border-stone-800 space-y-6">
-                <div>
-                  <h2 className="text-xl font-bold font-serif text-stone-900 dark:text-stone-100">
-                    Contact Details &amp; Business Information
-                  </h2>
-                  <p className="text-xs text-stone-500 mt-1">
-                    Manage phone numbers, Google Maps directions, office address, and social channel links.
-                  </p>
+              <div className="space-y-6">
+                {/* Central Multi-Contact & Primary Number Manager */}
+                <div className="bg-white dark:bg-stone-900 rounded-xl p-6 sm:p-8 border border-stone-200 dark:border-stone-800">
+                  <ContactManager
+                    contacts={editableData.contacts || editableData.settings?.contacts || []}
+                    onChange={(newContacts) => {
+                      const primary = getPrimaryContact(newContacts);
+                      setEditableData({
+                        ...editableData,
+                        contacts: newContacts,
+                        settings: {
+                          ...editableData.settings,
+                          contacts: newContacts,
+                          phone: primary.displayPhone,
+                          whatsapp: primary.phoneNumber.replace(/\D/g, '').replace(/^91/, ''),
+                        },
+                      });
+                    }}
+                    onSaveAndPublish={async (newContacts) => {
+                      const res = await updateContacts(newContacts);
+                      if (res.success) {
+                        showToast('success', 'Business contact numbers saved & published live!');
+                      } else {
+                        showToast('error', res.error || 'Failed to save contacts');
+                      }
+                    }}
+                    isSaving={isSaving}
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                {/* Office Location, Hours & Social Profiles */}
+                <div className="bg-white dark:bg-stone-900 rounded-xl p-6 sm:p-8 border border-stone-200 dark:border-stone-800 space-y-6">
                   <div>
-                    <label className="font-bold block mb-1">Business Phone Number</label>
-                    <input
-                      type="text"
-                      value={editableData.settings.phone}
-                      onChange={(e) =>
-                        setEditableData({
-                          ...editableData,
-                          settings: { ...editableData.settings, phone: e.target.value },
-                        })
-                      }
-                      className="w-full p-2 rounded border bg-stone-50 dark:bg-stone-800"
-                    />
+                    <h3 className="text-lg font-bold font-serif text-stone-900 dark:text-stone-100">
+                      Office Address, Hours &amp; Social Media
+                    </h3>
+                    <p className="text-xs text-stone-500 mt-1">
+                      Manage office location, working hours, Google Maps directions, and official social media handles.
+                    </p>
                   </div>
 
-                  <div>
-                    <label className="font-bold block mb-1">WhatsApp Number (Without Country Code)</label>
-                    <input
-                      type="text"
-                      value={editableData.settings.whatsapp}
-                      onChange={(e) =>
-                        setEditableData({
-                          ...editableData,
-                          settings: { ...editableData.settings, whatsapp: e.target.value },
-                        })
-                      }
-                      className="w-full p-2 rounded border bg-stone-50 dark:bg-stone-800"
-                    />
-                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
 
                   <div>
                     <label className="font-bold block mb-1">Email Address</label>
@@ -2621,7 +2626,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
             {/* ================= 9. TESTIMONIALS ================= */}
             {activeTab === 'testimonials' && (

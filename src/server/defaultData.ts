@@ -1,12 +1,14 @@
 import { WebsiteContent } from '../shared/types.ts';
+import { INITIAL_BUSINESS_CONTACTS } from '../lib/contactUtils.ts';
 
 export const initialWebsiteContent: WebsiteContent = {
   settings: {
     companyName: 'VSHN BUILDERS',
     tagline: 'Building Dreams. Creating Trust.',
     supportingTagline: 'YOUR DREAM HOME. OUR RESPONSIBILITY.',
-    phone: '70925 07374',
+    phone: '+91 70925 07374',
     whatsapp: '7092507374',
+    contacts: INITIAL_BUSINESS_CONTACTS,
     email: 'vshnbuilders@gmail.com',
     address: 'Near New Washermenpet Metro, Tondiarpet Depot, Chennai, Tamil Nadu - 600081',
     googleMapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=VSHN+Builders,+AA+Garden,+42%2F60,+Ottravadai+St,+Press+Colony,+Tondiarpet,+Chennai,+Tamil+Nadu+600081',
@@ -662,6 +664,7 @@ export const initialWebsiteContent: WebsiteContent = {
       updatedAt: '2025-01-22T10:00:00.000Z',
     },
   ],
+  contacts: INITIAL_BUSINESS_CONTACTS,
   faqs: [
     {
       id: 'faq-1',

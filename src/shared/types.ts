@@ -87,6 +87,21 @@ export interface SiteSettings {
     shortDescription: string;
     isActive?: boolean;
   };
+  contacts?: BusinessContact[];
+}
+
+export interface BusinessContact {
+  id: string;
+  label: string;
+  phoneNumber: string; // Normalized international format e.g. "+917092507374"
+  displayPhone: string; // Readable format e.g. "+91 70925 07374"
+  isWhatsAppEnabled: boolean;
+  isCallEnabled: boolean;
+  isPrimary: boolean;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface VideoGalleryItem {
@@ -215,6 +230,7 @@ export interface WebsiteContent {
   testimonials: Testimonial[];
   mediaLibrary: MediaItem[];
   videoGallery?: VideoGalleryItem[];
+  contacts?: BusinessContact[];
   faqs: Array<{
     id: string;
     question: string;

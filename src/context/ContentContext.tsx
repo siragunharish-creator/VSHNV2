@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { WebsiteContent, ContactSubmission, ActivityLog, MediaItem } from '../shared/types.ts';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { WebsiteContent, ContactSubmission, ActivityLog, MediaItem, BusinessContact } from '../shared/types.ts';
 import { initialWebsiteContent } from '../server/defaultData.ts';
 import { useAuth } from './AuthContext.tsx';
 import {
@@ -11,16 +11,25 @@ import {
   loadContentDirectFromSupabase,
   checkDirectSupabaseStatus,
 } from '../lib/supabaseStorage.ts';
+import {
+  INITIAL_BUSINESS_CONTACTS,
+  getPrimaryContact,
+  normalizePhoneNumber,
+  formatDisplayPhone,
+} from '../lib/contactUtils.ts';
 
 interface ContentContextType {
   content: WebsiteContent;
   draftContent: WebsiteContent | null;
+  contacts: BusinessContact[];
+  primaryContact: BusinessContact;
   enquiries: ContactSubmission[];
   activities: ActivityLog[];
   isLoading: boolean;
   isSaving: boolean;
   saveMessage: string | null;
   refreshContent: () => Promise<void>;
+  updateContacts: (contacts: BusinessContact[]) => Promise<{ success: boolean; error?: string }>;
   saveDraft: (updated: WebsiteContent) => Promise<{ success: boolean; error?: string }>;
   publishContent: (updated: WebsiteContent) => Promise<{ success: boolean; error?: string }>;
   uploadImage: (
@@ -66,12 +75,59 @@ const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
 function sanitizeLoadedContent(data?: Partial<WebsiteContent> | null): WebsiteContent {
   if (!data) return initialWebsiteContent;
+
+  const rawContacts =
+    Array.isArray(data.contacts) && data.contacts.length > 0
+      ? data.contacts
+      : Array.isArray(data.settings?.contacts) && data.settings.contacts.length > 0
+      ? data.settings.contacts
+      : initialWebsiteContent.contacts || INITIAL_BUSINESS_CONTACTS;
+
+  const sanitizedContacts: BusinessContact[] = rawContacts.map((c, idx) => ({
+    ...c,
+    id: c.id || `contact-${idx + 1}`,
+    label: c.label || `Contact ${idx + 1}`,
+    phoneNumber: normalizePhoneNumber(c.phoneNumber),
+    displayPhone: c.displayPhone || formatDisplayPhone(c.phoneNumber),
+    isWhatsAppEnabled: c.isWhatsAppEnabled !== false,
+    isCallEnabled: c.isCallEnabled !== false,
+    isPrimary: Boolean(c.isPrimary),
+    displayOrder: typeof c.displayOrder === 'number' ? c.displayOrder : idx + 1,
+    isActive: c.isActive !== false,
+  }));
+
+  // Ensure exactly one active contact is marked primary
+  let hasActivePrimary = false;
+  for (const c of sanitizedContacts) {
+    if (c.isActive && c.isPrimary) {
+      if (!hasActivePrimary) {
+        hasActivePrimary = true;
+      } else {
+        c.isPrimary = false;
+      }
+    }
+  }
+  if (!hasActivePrimary) {
+    const firstActive = sanitizedContacts.find((c) => c.isActive) || sanitizedContacts[0];
+    if (firstActive) firstActive.isPrimary = true;
+  }
+
+  const primary = getPrimaryContact(sanitizedContacts);
+  const syncedPhone = primary.displayPhone || data.settings?.phone || initialWebsiteContent.settings.phone;
+  const syncedWhatsApp =
+    primary.phoneNumber.replace(/\D/g, '').replace(/^91/, '') ||
+    data.settings?.whatsapp ||
+    initialWebsiteContent.settings.whatsapp;
+
   return {
     ...initialWebsiteContent,
     ...data,
     settings: {
       ...initialWebsiteContent.settings,
       ...(data.settings || {}),
+      phone: syncedPhone,
+      whatsapp: syncedWhatsApp,
+      contacts: sanitizedContacts,
       hero: {
         ...initialWebsiteContent.settings.hero,
         ...(data.settings?.hero || {}),
@@ -105,6 +161,7 @@ function sanitizeLoadedContent(data?: Partial<WebsiteContent> | null): WebsiteCo
         isActive: data.settings?.estimatedInvestment?.isActive ?? initialWebsiteContent.settings.estimatedInvestment?.isActive ?? true,
       },
     },
+    contacts: sanitizedContacts,
     projects: Array.isArray(data.projects) && data.projects.length > 0 ? data.projects : initialWebsiteContent.projects,
     packages: Array.isArray(data.packages) && data.packages.length > 0 ? data.packages : initialWebsiteContent.packages,
     services: Array.isArray(data.services) && data.services.length > 0 ? data.services : initialWebsiteContent.services,
@@ -790,7 +847,103 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       await refreshContent();
       return { success: true, message: data.message };
     }
-    return { success: false, message: data?.error || error || 'Reset failed' };
+    return { success: false, message: error || 'Failed to reset website content' };
+  };
+
+  const contacts = useMemo(() => {
+    return Array.isArray(content.contacts) && content.contacts.length > 0
+      ? content.contacts
+      : Array.isArray(content.settings?.contacts) && content.settings.contacts.length > 0
+      ? content.settings.contacts
+      : INITIAL_BUSINESS_CONTACTS;
+  }, [content.contacts, content.settings?.contacts]);
+
+  const primaryContact = useMemo(() => {
+    return getPrimaryContact(contacts);
+  }, [contacts]);
+
+  // Update business contacts with instant Supabase & backend persistence
+  const updateContacts = async (
+    newContacts: BusinessContact[]
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!token) return { success: false, error: 'Unauthorized. Please log in as administrator.' };
+    setIsSaving(true);
+    try {
+      const sanitized: BusinessContact[] = newContacts.map((c, idx) => ({
+        ...c,
+        id: c.id || `contact-${Date.now()}-${idx}`,
+        label: c.label ? c.label.trim() : `Contact ${idx + 1}`,
+        phoneNumber: normalizePhoneNumber(c.phoneNumber),
+        displayPhone: formatDisplayPhone(c.phoneNumber),
+        isWhatsAppEnabled: c.isWhatsAppEnabled !== false,
+        isCallEnabled: c.isCallEnabled !== false,
+        isPrimary: Boolean(c.isPrimary),
+        displayOrder: typeof c.displayOrder === 'number' ? c.displayOrder : idx + 1,
+        isActive: c.isActive !== false,
+        updatedAt: new Date().toISOString(),
+      }));
+
+      // Ensure exactly one active contact is primary
+      let hasActivePrimary = false;
+      for (const c of sanitized) {
+        if (c.isActive && c.isPrimary) {
+          if (!hasActivePrimary) {
+            hasActivePrimary = true;
+          } else {
+            c.isPrimary = false;
+          }
+        }
+      }
+      if (!hasActivePrimary) {
+        const firstActive = sanitized.find((c) => c.isActive) || sanitized[0];
+        if (firstActive) firstActive.isPrimary = true;
+      }
+
+      const primary = getPrimaryContact(sanitized);
+
+      const updatedContent: WebsiteContent = {
+        ...content,
+        contacts: sanitized,
+        settings: {
+          ...content.settings,
+          contacts: sanitized,
+          phone: primary.displayPhone,
+          whatsapp: primary.phoneNumber.replace(/\D/g, '').replace(/^91/, ''),
+        },
+      };
+
+      setContent(updatedContent);
+      try {
+        localStorage.setItem('vshn_live_content', JSON.stringify(updatedContent));
+      } catch {}
+
+      // 1. Direct browser-to-Supabase sync
+      try {
+        await syncContentDirectToSupabase(updatedContent);
+      } catch (sbErr: any) {
+        console.warn('Direct Supabase contacts sync notice:', sbErr?.message);
+      }
+
+      // 2. Post to backend
+      try {
+        await safeFetchJson('/api/admin/contacts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ contacts: sanitized }),
+        });
+      } catch {}
+
+      setSaveMessage('Business contact numbers published live to website!');
+      setTimeout(() => setSaveMessage(null), 3000);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to update contacts.' };
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -798,12 +951,15 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       value={{
         content,
         draftContent,
+        contacts,
+        primaryContact,
         enquiries,
         activities,
         isLoading,
         isSaving,
         saveMessage,
         refreshContent,
+        updateContacts,
         saveDraft,
         publishContent,
         uploadImage,

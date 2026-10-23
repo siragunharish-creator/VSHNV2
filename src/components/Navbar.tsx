@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useContent } from '../context/ContentContext.tsx';
 import { VshnLogo } from './VshnLogo.tsx';
+import { getCallUrl } from '../lib/contactUtils.ts';
 
 interface NavbarProps {
   onOpenAdminLogin: () => void;
@@ -18,7 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { isAuthenticated } = useAuth();
-  const { content } = useContent();
+  const { content, primaryContact } = useContent();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -138,11 +139,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Call Now Button */}
             <a
-              href={`tel:${content.settings.phone.replace(/\s+/g, '')}`}
+              href={getCallUrl(primaryContact?.phoneNumber || content.settings.phone)}
               className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg bg-stone-900 dark:bg-amber-500 text-white dark:text-stone-950 hover:bg-stone-800 dark:hover:bg-amber-400 shadow-sm transition-all"
             >
               <Phone className="w-3.5 h-3.5" />
-              <span>{content.settings.phone}</span>
+              <span>{primaryContact?.displayPhone || content.settings.phone}</span>
             </a>
 
             {/* Mobile Menu Hamburger */}
@@ -226,11 +227,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             <a
-              href={`tel:${content.settings.phone.replace(/\s+/g, '')}`}
+              href={getCallUrl(primaryContact?.phoneNumber || content.settings.phone)}
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-stone-900 dark:bg-amber-500 text-white dark:text-stone-950 font-semibold text-sm shadow-sm"
             >
               <Phone className="w-4 h-4" />
-              Call {content.settings.phone}
+              Call {primaryContact?.displayPhone || content.settings.phone}
             </a>
           </div>
         </div>
