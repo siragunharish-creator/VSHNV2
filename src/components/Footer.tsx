@@ -8,12 +8,14 @@ import { getCallUrl, getActiveContacts } from '../lib/contactUtils.ts';
 interface FooterProps {
   onOpenAdminLogin: () => void;
   onOpenAdminConsole: () => void;
+  onOpenCareers?: () => void;
   isAuthenticated: boolean;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   onOpenAdminLogin,
   onOpenAdminConsole,
+  onOpenCareers,
   isAuthenticated,
 }) => {
   const { theme, toggleTheme } = useTheme();
@@ -94,6 +96,16 @@ export const Footer: React.FC<FooterProps> = ({
               <li><a href="#calculator" className="hover:text-white transition-colors">Cost Estimator</a></li>
               <li><a href="#projects" className="hover:text-white transition-colors">Projects Portfolio</a></li>
               <li><a href="#packages" className="hover:text-white transition-colors">Construction Packages</a></li>
+              <li><a href="#videos" className="hover:text-white transition-colors">Videos</a></li>
+              <li>
+                <button
+                  type="button"
+                  onClick={onOpenCareers}
+                  className="hover:text-amber-400 text-left transition-colors cursor-pointer"
+                >
+                  Careers
+                </button>
+              </li>
               <li><a href="#contact" className="hover:text-white transition-colors">Contact Us</a></li>
             </ul>
           </div>

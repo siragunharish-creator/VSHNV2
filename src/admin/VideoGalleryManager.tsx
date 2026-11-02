@@ -20,6 +20,8 @@ import {
   Filter,
   CheckCircle2,
   X,
+  Smartphone,
+  Monitor,
 } from 'lucide-react';
 import { VideoGalleryItem, WebsiteContent } from '../shared/types.ts';
 import { useContent } from '../context/ContentContext.tsx';
@@ -34,7 +36,7 @@ interface VideoGalleryManagerProps {
 /**
  * Normalizes and extracts platform details from raw video URLs
  */
-function parseAndValidateVideoUrl(rawUrl: string, explicitPlatform: 'auto' | 'youtube' | 'instagram'): {
+function parseAndValidateVideoUrl(rawUrl: string, explicitPlatform: 'auto' | 'youtube' | 'instagram' | string): {
   isValid: boolean;
   platform: 'youtube' | 'instagram';
   cleanUrl: string;
@@ -131,7 +133,8 @@ export const VideoGalleryManager: React.FC<VideoGalleryManagerProps> = ({
   // Form Fields
   const [formTitle, setFormTitle] = useState('');
   const [formUrl, setFormUrl] = useState('');
-  const [formPlatform, setFormPlatform] = useState<'auto' | 'youtube' | 'instagram'>('auto');
+  const [formPlatform, setFormPlatform] = useState<'auto' | 'youtube' | 'instagram' | string>('auto');
+  const [formOrientation, setFormOrientation] = useState<'landscape' | 'portrait'>('landscape');
   const [formDescription, setFormDescription] = useState('');
   const [formThumbnail, setFormThumbnail] = useState('');
   const [formIsPublished, setFormIsPublished] = useState(true);
@@ -153,6 +156,7 @@ export const VideoGalleryManager: React.FC<VideoGalleryManagerProps> = ({
     setFormTitle('');
     setFormUrl('');
     setFormPlatform('auto');
+    setFormOrientation('landscape');
     setFormDescription('');
     setFormThumbnail('');
     setFormIsPublished(true);
@@ -174,12 +178,28 @@ export const VideoGalleryManager: React.FC<VideoGalleryManagerProps> = ({
     setFormTitle(v.title);
     setFormUrl(v.url);
     setFormPlatform(v.platform);
+
+    const isPort =
+      v.orientation === 'portrait' ||
+      v.aspectRatio === 'portrait' ||
+      v.aspectRatio === '9:16' ||
+      (v.orientation !== 'landscape' && v.url?.toLowerCase().includes('/shorts/'));
+
+    setFormOrientation(isPort ? 'portrait' : 'landscape');
     setFormDescription(v.description || '');
     setFormThumbnail(v.thumbnailUrl || '');
     setFormIsPublished(v.isPublished);
     setFormOrder(v.displayOrder);
     setFormError(null);
     setIsModalOpen(true);
+  };
+
+  // Handler for URL input change that auto-selects portrait for YouTube Shorts
+  const handleUrlChange = (newUrl: string) => {
+    setFormUrl(newUrl);
+    if (newUrl.toLowerCase().includes('/shorts/')) {
+      setFormOrientation('portrait');
+    }
   };
 
   // Submit form (add or update)
@@ -212,6 +232,8 @@ export const VideoGalleryManager: React.FC<VideoGalleryManagerProps> = ({
               title: formTitle.trim(),
               url: parseRes.cleanUrl,
               platform: parseRes.platform,
+              orientation: formOrientation,
+              aspectRatio: (formOrientation === 'portrait' ? '9:16' : '16:9') as any,
               description: formDescription.trim() || undefined,
               thumbnailUrl: defaultThumb || undefined,
               isPublished: formIsPublished,
@@ -231,6 +253,8 @@ export const VideoGalleryManager: React.FC<VideoGalleryManagerProps> = ({
         title: formTitle.trim(),
         url: parseRes.cleanUrl,
         platform: parseRes.platform,
+        orientation: formOrientation,
+        aspectRatio: (formOrientation === 'portrait' ? '9:16' : '16:9') as any,
         description: formDescription.trim() || undefined,
         thumbnailUrl: defaultThumb || undefined,
         isPublished: formIsPublished,
@@ -245,6 +269,35 @@ export const VideoGalleryManager: React.FC<VideoGalleryManagerProps> = ({
 
     setIsModalOpen(false);
     resetForm();
+  };
+
+  // 1-Click quick toggle between Landscape and Portrait from card
+  const handleToggleOrientation = (id: string) => {
+    const updated = videos.map((v) => {
+      if (v.id === id) {
+        const currentlyPortrait =
+          v.orientation === 'portrait' ||
+          v.aspectRatio === 'portrait' ||
+          v.aspectRatio === '9:16' ||
+          (v.orientation !== 'landscape' && v.url?.toLowerCase().includes('/shorts/'));
+        const next: 'landscape' | 'portrait' = currentlyPortrait ? 'landscape' : 'portrait';
+        return {
+          ...v,
+          orientation: next,
+          aspectRatio: (next === 'portrait' ? '9:16' : '16:9') as any,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return v;
+    });
+    setEditableData({ ...editableData, videoGallery: updated });
+    const target = updated.find((v) => v.id === id);
+    if (showToast) {
+      showToast(
+        'info',
+        `Orientation changed to ${target?.orientation === 'portrait' ? 'Portrait (9:16 Shorts)' : 'Landscape (16:9) Standard'}. Click "Save & Publish" to commit.`
+      );
+    }
   };
 
   // Toggle publish / hide
@@ -464,19 +517,48 @@ export const VideoGalleryManager: React.FC<VideoGalleryManagerProps> = ({
                     )}
                     <div className="absolute inset-0 bg-stone-950/30" />
 
-                    {/* Platform Badge */}
-                    <div className="absolute top-2.5 left-2.5">
-                      {video.platform === 'youtube' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold shadow-md">
-                          <Youtube className="w-3 h-3 fill-white" />
-                          <span>YouTube</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] font-bold shadow-md">
-                          <Instagram className="w-3 h-3" />
-                          <span>Instagram</span>
-                        </span>
-                      )}
+                    {/* Platform & Orientation Badges */}
+                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold shadow-md">
+                        <Youtube className="w-3 h-3 fill-white" />
+                        <span>YouTube</span>
+                      </span>
+
+                      {/* Orientation Quick-Toggle Badge */}
+                      {(() => {
+                        const isPortrait =
+                          video.orientation === 'portrait' ||
+                          video.aspectRatio === 'portrait' ||
+                          video.aspectRatio === '9:16' ||
+                          (video.orientation !== 'landscape' && video.url?.toLowerCase().includes('/shorts/'));
+                        return (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleOrientation(video.id);
+                            }}
+                            title="Click to toggle between Landscape (16:9) and Portrait (9:16 Shorts)"
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold shadow-md transition-all hover:scale-105 cursor-pointer ${
+                              isPortrait
+                                ? 'bg-purple-600 hover:bg-purple-500 text-white'
+                                : 'bg-slate-900/90 hover:bg-slate-800 text-slate-100 border border-slate-700/80'
+                            }`}
+                          >
+                            {isPortrait ? (
+                              <>
+                                <Smartphone className="w-3 h-3" />
+                                <span>Portrait (9:16)</span>
+                              </>
+                            ) : (
+                              <>
+                                <Monitor className="w-3 h-3" />
+                                <span>Landscape (16:9)</span>
+                              </>
+                            )}
+                          </button>
+                        );
+                      })()}
                     </div>
 
                     {/* Order Badge */}
@@ -646,20 +728,20 @@ export const VideoGalleryManager: React.FC<VideoGalleryManagerProps> = ({
               {/* Video URL & Platform Selection */}
               <div className="space-y-2">
                 <label className="block font-bold text-stone-700 dark:text-stone-300">
-                  Video URL (YouTube or Instagram) *
+                  YouTube Video Link or Direct Video URL *
                 </label>
                 <input
                   type="url"
                   required
                   value={formUrl}
-                  onChange={(e) => setFormUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=... or https://www.instagram.com/reel/... "
+                  onChange={(e) => handleUrlChange(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=... or https://youtube.com/shorts/... or https://youtu.be/..."
                   className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 font-mono"
                 />
 
                 <div className="flex items-center gap-3 pt-1">
                   <span className="text-[11px] text-stone-500 font-semibold">Platform:</span>
-                  {(['auto', 'youtube', 'instagram'] as const).map((plat) => (
+                  {(['auto', 'youtube'] as const).map((plat) => (
                     <label key={plat} className="inline-flex items-center gap-1.5 cursor-pointer text-[11px]">
                       <input
                         type="radio"
@@ -669,9 +751,71 @@ export const VideoGalleryManager: React.FC<VideoGalleryManagerProps> = ({
                         onChange={() => setFormPlatform(plat)}
                         className="text-amber-500 focus:ring-amber-400"
                       />
-                      <span className="capitalize">{plat === 'auto' ? 'Auto-Detect' : plat}</span>
+                      <span className="capitalize">{plat === 'auto' ? 'Auto-Detect' : 'YouTube'}</span>
                     </label>
                   ))}
+                </div>
+              </div>
+
+              {/* Orientation / Aspect Ratio: Landscape vs Portrait (Shorts) */}
+              <div className="p-3.5 rounded-xl bg-stone-100 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-stone-800 dark:text-stone-200 text-xs">
+                    Display Format / Orientation *
+                  </label>
+                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                    formOrientation === 'portrait'
+                      ? 'text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/40 border border-purple-300 dark:border-purple-800'
+                      : 'text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-800'
+                  }`}>
+                    {formOrientation === 'portrait' ? '9:16 Portrait (Shorts)' : '16:9 Landscape (Standard)'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setFormOrientation('landscape')}
+                    className={`p-2.5 rounded-lg border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                      formOrientation === 'landscape'
+                        ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/30 text-stone-900 dark:text-stone-100 ring-2 ring-amber-500/30 shadow-xs'
+                        : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:border-stone-300'
+                    }`}
+                  >
+                    <div className={`p-1.5 rounded-md ${formOrientation === 'landscape' ? 'bg-amber-500 text-stone-950' : 'bg-stone-100 dark:bg-stone-800 text-stone-500'}`}>
+                      <Monitor className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-xs flex items-center gap-1">
+                        <span>Landscape (16:9)</span>
+                        {formOrientation === 'landscape' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                      </div>
+                      <span className="text-[10px] text-stone-500 dark:text-stone-400 block mt-0.5 leading-tight">
+                        Standard horizontal video
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormOrientation('portrait')}
+                    className={`p-2.5 rounded-lg border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                      formOrientation === 'portrait'
+                        ? 'border-purple-500 bg-purple-50/70 dark:bg-purple-950/30 text-stone-900 dark:text-stone-100 ring-2 ring-purple-500/30 shadow-xs'
+                        : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:border-stone-300'
+                    }`}
+                  >
+                    <div className={`p-1.5 rounded-md ${formOrientation === 'portrait' ? 'bg-purple-600 text-white' : 'bg-stone-100 dark:bg-stone-800 text-stone-500'}`}>
+                      <Smartphone className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-xs flex items-center gap-1">
+                        <span>Portrait (9:16)</span>
+                        {formOrientation === 'portrait' && <CheckCircle2 className="w-3.5 h-3.5 text-purple-500 shrink-0" />}
+                      </div>
+                      <span className="text-[10px] text-stone-500 dark:text-stone-400 block mt-0.5 leading-tight">
+                        YouTube Shorts / Reels
+                      </span>
+                    </div>
+                  </button>
                 </div>
               </div>
 
@@ -755,28 +899,39 @@ export const VideoGalleryManager: React.FC<VideoGalleryManagerProps> = ({
       )}
 
       {/* Interactive Video Preview Modal */}
-      {previewVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-2xl bg-stone-900 text-white rounded-2xl border border-stone-800 shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-stone-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {previewVideo.platform === 'youtube' ? (
-                  <Youtube className="w-5 h-5 text-red-500" />
-                ) : (
-                  <Instagram className="w-5 h-5 text-pink-500" />
-                )}
-                <h3 className="text-sm font-bold truncate max-w-md">{previewVideo.title}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPreviewVideo(null)}
-                className="p-1 rounded-lg text-stone-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {previewVideo && (() => {
+        const isPortrait = previewVideo.orientation === 'portrait' ||
+          previewVideo.aspectRatio === 'portrait' ||
+          previewVideo.aspectRatio === '9:16' ||
+          (previewVideo.orientation !== 'landscape' && previewVideo.url?.toLowerCase().includes('/shorts/'));
 
-            <div className="relative aspect-video bg-black flex items-center justify-center">
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-xs animate-in fade-in">
+            <div className={`w-full ${isPortrait ? 'max-w-sm' : 'max-w-2xl'} bg-stone-900 text-white rounded-2xl border border-stone-800 shadow-2xl overflow-hidden`}>
+              <div className="p-4 border-b border-stone-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {previewVideo.platform === 'youtube' ? (
+                    <Youtube className="w-5 h-5 text-red-500" />
+                  ) : (
+                    <Instagram className="w-5 h-5 text-pink-500" />
+                  )}
+                  <h3 className="text-sm font-bold truncate max-w-xs">{previewVideo.title}</h3>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    isPortrait ? 'bg-purple-900/60 text-purple-300 border border-purple-700/50' : 'bg-stone-800 text-stone-300'
+                  }`}>
+                    {isPortrait ? '9:16 Portrait' : '16:9 Landscape'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewVideo(null)}
+                  className="p-1 rounded-lg text-stone-400 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className={`relative ${isPortrait ? 'aspect-[9/16] max-h-[560px] mx-auto' : 'aspect-video'} bg-black flex items-center justify-center`}>
               {previewVideo.platform === 'youtube' ? (
                 (() => {
                   const match = previewVideo.url.match(/[?&]v=([a-zA-Z0-9_-]{11})|youtu\.be\/([a-zA-Z0-9_-]{11})|shorts\/([a-zA-Z0-9_-]{11})/);
@@ -832,7 +987,8 @@ export const VideoGalleryManager: React.FC<VideoGalleryManagerProps> = ({
             </div>
           </div>
         </div>
-      )}
+      );
+    })()}
 
       {/* Delete Confirmation Modal */}
       {videoToDelete && (

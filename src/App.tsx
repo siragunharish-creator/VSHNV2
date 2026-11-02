@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './context/ThemeContext.tsx';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { ContentProvider, useContent } from './context/ContentContext.tsx';
@@ -19,6 +19,7 @@ import { ContactSection } from './components/ContactSection.tsx';
 import { Footer } from './components/Footer.tsx';
 import { FloatingActions } from './components/FloatingActions.tsx';
 import { ConsultationModal } from './components/ConsultationModal.tsx';
+import { CareersModal } from './components/CareersModal.tsx';
 import { AdminLoginModal } from './components/AdminLoginModal.tsx';
 import { AdminConsole } from './admin/AdminConsole.tsx';
 
@@ -29,11 +30,23 @@ function MainSite() {
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
   const [isConsultationModalOpen, setIsConsultationModalOpen] = useState(false);
+  const [isCareersModalOpen, setIsCareersModalOpen] = useState(false);
   const [consultationModalData, setConsultationModalData] = useState<{
     service?: string;
     package?: string;
     sqFt?: number;
   }>({});
+
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === '#careers') {
+        setIsCareersModalOpen(true);
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   const handleOpenConsultation = (serviceOrPkg?: string, sqFt?: number) => {
     let pkg: string | undefined = undefined;
@@ -70,6 +83,7 @@ function MainSite() {
       <Navbar
         onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
         onOpenAdminConsole={() => setIsAdminConsoleOpen(true)}
+        onOpenCareers={() => setIsCareersModalOpen(true)}
       />
 
       {/* Main Page Content */}
@@ -104,7 +118,7 @@ function MainSite() {
         {/* Gallery Section */}
         <GallerySection />
 
-        {/* VSHN BUILDERS Videos: Multiple Video Gallery for YouTube & Instagram */}
+        {/* VSHN BUILDERS Videos: Multiple Video Gallery for YouTube */}
         <VideoGallerySection />
 
         {/* FAQ Accordion */}
@@ -122,6 +136,7 @@ function MainSite() {
       <Footer
         onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
         onOpenAdminConsole={() => setIsAdminConsoleOpen(true)}
+        onOpenCareers={() => setIsCareersModalOpen(true)}
         isAuthenticated={isAuthenticated}
       />
 
@@ -135,6 +150,12 @@ function MainSite() {
         initialService={consultationModalData.service}
         initialPackage={consultationModalData.package}
         initialSqFt={consultationModalData.sqFt}
+      />
+
+      {/* Careers Modal */}
+      <CareersModal
+        isOpen={isCareersModalOpen}
+        onClose={() => setIsCareersModalOpen(false)}
       />
 
       {/* Secure Admin Login Modal */}

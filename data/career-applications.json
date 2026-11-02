@@ -1,0 +1,35 @@
+[
+  {
+    "id": "app-1793619911553-481",
+    "jobId": "job-1",
+    "jobTitle": "General Application",
+    "fullName": "Karthik Raja",
+    "mobileNumber": "+919840123456",
+    "email": "karthik.civil@gmail.com",
+    "location": "Chennai",
+    "yearsOfExperience": "3 Years",
+    "qualification": "B.E. Civil Engineering",
+    "resumeUrl": "",
+    "resumeFileName": "",
+    "message": "Passionate about residential site execution and ready to join immediately.",
+    "status": "new",
+    "appliedAt": "2026-11-02T11:45:11.553Z"
+  },
+  {
+    "id": "app-sample-1",
+    "jobId": "job-1",
+    "jobTitle": "Civil Site Engineer",
+    "fullName": "Venkatesh Raman",
+    "mobileNumber": "+919841234567",
+    "email": "venkatesh.civil@example.com",
+    "location": "Porur, Chennai",
+    "yearsOfExperience": "3.5",
+    "qualification": "B.E. Civil Engineering",
+    "resumeUrl": "",
+    "resumeFileName": "Venkatesh_Civil_Resume.pdf",
+    "message": "Experienced in RCC supervision, quantity takeoff, and client milestone delivery in Chennai projects.",
+    "status": "new",
+    "appliedAt": "2026-11-01T11:45:02.273Z",
+    "notes": "Has valid driving license and own two-wheeler for site visits."
+  }
+]

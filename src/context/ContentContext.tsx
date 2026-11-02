@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { WebsiteContent, ContactSubmission, ActivityLog, MediaItem, BusinessContact } from '../shared/types.ts';
+import { WebsiteContent, ContactSubmission, ActivityLog, MediaItem, BusinessContact, JobOpening, JobApplication } from '../shared/types.ts';
 import { initialWebsiteContent } from '../server/defaultData.ts';
 import { useAuth } from './AuthContext.tsx';
 import {
@@ -23,6 +23,9 @@ interface ContentContextType {
   draftContent: WebsiteContent | null;
   contacts: BusinessContact[];
   primaryContact: BusinessContact;
+  careers: JobOpening[];
+  activeCareers: JobOpening[];
+  applications: JobApplication[];
   enquiries: ContactSubmission[];
   activities: ActivityLog[];
   isLoading: boolean;
@@ -30,6 +33,24 @@ interface ContentContextType {
   saveMessage: string | null;
   refreshContent: () => Promise<void>;
   updateContacts: (contacts: BusinessContact[]) => Promise<{ success: boolean; error?: string }>;
+  updateCareers: (careers: JobOpening[]) => Promise<{ success: boolean; error?: string }>;
+  submitJobApplication: (data: FormData | {
+    jobId: string;
+    jobTitle: string;
+    fullName: string;
+    mobileNumber: string;
+    email: string;
+    location: string;
+    yearsOfExperience: string;
+    qualification: string;
+    resumeFile?: File;
+    resumeUrl?: string;
+    resumeFileName?: string;
+    message?: string;
+  }) => Promise<{ success: boolean; message?: string; error?: string }>;
+  updateApplicationStatus: (id: string, status: JobApplication['status'], notes?: string) => Promise<boolean>;
+  deleteApplication: (id: string) => Promise<boolean>;
+  refreshApplications: () => Promise<void>;
   saveDraft: (updated: WebsiteContent) => Promise<{ success: boolean; error?: string }>;
   publishContent: (updated: WebsiteContent) => Promise<{ success: boolean; error?: string }>;
   uploadImage: (
@@ -169,6 +190,7 @@ function sanitizeLoadedContent(data?: Partial<WebsiteContent> | null): WebsiteCo
     faqs: Array.isArray(data.faqs) && data.faqs.length > 0 ? data.faqs : initialWebsiteContent.faqs,
     mediaLibrary: Array.isArray(data.mediaLibrary) && data.mediaLibrary.length > 0 ? data.mediaLibrary : initialWebsiteContent.mediaLibrary,
     videoGallery: Array.isArray(data.videoGallery) ? data.videoGallery : (initialWebsiteContent.videoGallery || []),
+    careers: Array.isArray(data.careers) ? data.careers : (initialWebsiteContent.careers || []),
   };
 }
 
@@ -191,6 +213,13 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [enquiries, setEnquiries] = useState<ContactSubmission[]>(() => {
     try {
       const saved = localStorage.getItem('vshn_enquiries');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+  const [applications, setApplications] = useState<JobApplication[]>(() => {
+    try {
+      const saved = localStorage.getItem('vshn_applications');
       if (saved) return JSON.parse(saved);
     } catch {}
     return [];
@@ -364,9 +393,11 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
           setContent(pub);
           setDraftContent(data.draft ? sanitizeLoadedContent(data.draft) : null);
           setEnquiries(data.enquiries || []);
+          setApplications(data.applications || []);
           setActivities(data.activities || []);
           try {
             localStorage.setItem('vshn_live_content', JSON.stringify(pub));
+            localStorage.setItem('vshn_applications', JSON.stringify(data.applications || []));
           } catch {}
           setIsLoading(false);
           return;
@@ -946,6 +977,223 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  // Careers & Job Openings
+  const careers = useMemo(() => {
+    return Array.isArray(content.careers)
+      ? content.careers
+      : (initialWebsiteContent.careers || []);
+  }, [content.careers]);
+
+  const activeCareers = useMemo(() => {
+    return careers
+      .filter(
+        (j) =>
+          j.isActive === true ||
+          (j.isActive !== false &&
+            (j.isActive as any) !== 'false' &&
+            (j.isActive as any) !== 0 &&
+            (j.isActive as any) !== '0' &&
+            (j.isActive as any) !== 'closed' &&
+            (j.isActive as any) !== 'inactive')
+      )
+      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+  }, [careers]);
+
+  const updateCareers = async (
+    newCareers: JobOpening[]
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!token) return { success: false, error: 'Unauthorized. Please log in as administrator.' };
+    setIsSaving(true);
+    try {
+      const sanitized: JobOpening[] = newCareers.map((j, idx) => {
+        const isJobActive =
+          j.isActive === true ||
+          (j.isActive !== false &&
+            (j.isActive as any) !== 'false' &&
+            (j.isActive as any) !== 0 &&
+            (j.isActive as any) !== '0' &&
+            (j.isActive as any) !== 'closed' &&
+            (j.isActive as any) !== 'inactive');
+
+        return {
+          ...j,
+          id: j.id || `job-${Date.now()}-${idx}`,
+          title: j.title ? j.title.trim() : `Job Opening ${idx + 1}`,
+          location: j.location ? j.location.trim() : 'Chennai',
+          experience: j.experience ? j.experience.trim() : '1 - 3 Years',
+          qualification: j.qualification ? j.qualification.trim() : 'Civil Engineering Degree / Diploma',
+          salary: j.salary ? j.salary.trim() : undefined,
+          jobType: j.jobType || 'Full-time',
+          description: j.description ? j.description.trim() : '',
+          skills: Array.isArray(j.skills) ? j.skills.map((s) => s.trim()).filter(Boolean) : [],
+          openingsCount: typeof j.openingsCount === 'number' && j.openingsCount > 0 ? j.openingsCount : 1,
+          isActive: isJobActive,
+          displayOrder: typeof j.displayOrder === 'number' ? j.displayOrder : idx + 1,
+          createdAt: j.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      });
+
+      const updatedContent: WebsiteContent = {
+        ...content,
+        careers: sanitized,
+      };
+
+      setContent(updatedContent);
+      try {
+        localStorage.setItem('vshn_live_content', JSON.stringify(updatedContent));
+      } catch {}
+
+      // 1. Direct browser-to-Supabase sync
+      try {
+        await syncContentDirectToSupabase(updatedContent);
+      } catch (sbErr: any) {
+        console.warn('Direct Supabase careers sync notice:', sbErr?.message);
+      }
+
+      // 2. Post to backend
+      try {
+        await safeFetchJson('/api/admin/careers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ careers: sanitized }),
+        });
+      } catch {}
+
+      setSaveMessage('Career openings published live to website!');
+      setTimeout(() => setSaveMessage(null), 3000);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to update careers.' };
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Submit Job Application
+  const submitJobApplication = async (
+    data: FormData | {
+      jobId: string;
+      jobTitle: string;
+      fullName: string;
+      mobileNumber: string;
+      email: string;
+      location: string;
+      yearsOfExperience: string;
+      qualification: string;
+      resumeFile?: File;
+      resumeUrl?: string;
+      resumeFileName?: string;
+      message?: string;
+    }
+  ): Promise<{ success: boolean; message?: string; error?: string }> => {
+    try {
+      let body: any;
+      if (data instanceof FormData) {
+        body = data;
+      } else {
+        const fd = new FormData();
+        fd.append('jobId', data.jobId);
+        fd.append('jobTitle', data.jobTitle);
+        fd.append('fullName', data.fullName);
+        fd.append('mobileNumber', data.mobileNumber);
+        fd.append('email', data.email);
+        fd.append('location', data.location);
+        fd.append('yearsOfExperience', data.yearsOfExperience);
+        fd.append('qualification', data.qualification);
+        if (data.message) fd.append('message', data.message);
+        if (data.resumeFile) {
+          fd.append('resume', data.resumeFile);
+        } else if (data.resumeUrl) {
+          fd.append('resumeUrl', data.resumeUrl);
+          if (data.resumeFileName) fd.append('resumeFileName', data.resumeFileName);
+        }
+        body = fd;
+      }
+
+      const res = await fetch('/api/careers/apply', {
+        method: 'POST',
+        body,
+      });
+
+      const resData = await res.json();
+      if (res.ok && resData.success) {
+        if (resData.application) {
+          setApplications((prev) => [resData.application, ...prev]);
+        }
+        return { success: true, message: resData.message || 'Application submitted successfully!' };
+      }
+      return { success: false, error: resData.error || 'Failed to submit application.' };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error while submitting application.' };
+    }
+  };
+
+  // Update Application Status
+  const updateApplicationStatus = async (
+    id: string,
+    status: JobApplication['status'],
+    notes?: string
+  ): Promise<boolean> => {
+    if (!token) return false;
+    try {
+      const { ok, data } = await safeFetchJson(`/api/admin/applications/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status, notes }),
+      });
+      if (ok && data?.success) {
+        setApplications((prev) =>
+          prev.map((a) => (a.id === id ? { ...a, status, notes: notes !== undefined ? notes : a.notes } : a))
+        );
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  // Delete Application
+  const deleteApplication = async (id: string): Promise<boolean> => {
+    if (!token) return false;
+    try {
+      const { ok, data } = await safeFetchJson(`/api/admin/applications/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (ok && data?.success) {
+        setApplications((prev) => prev.filter((a) => a.id !== id));
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  // Refresh Applications
+  const refreshApplications = useCallback(async () => {
+    if (!token) return;
+    try {
+      const { ok, data } = await safeFetchJson('/api/admin/applications', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (ok && data?.applications) {
+        setApplications(data.applications);
+        try {
+          localStorage.setItem('vshn_applications', JSON.stringify(data.applications));
+        } catch {}
+      }
+    } catch {}
+  }, [token]);
+
   return (
     <ContentContext.Provider
       value={{
@@ -953,6 +1201,9 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         draftContent,
         contacts,
         primaryContact,
+        careers,
+        activeCareers,
+        applications,
         enquiries,
         activities,
         isLoading,
@@ -960,6 +1211,11 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         saveMessage,
         refreshContent,
         updateContacts,
+        updateCareers,
+        submitJobApplication,
+        updateApplicationStatus,
+        deleteApplication,
+        refreshApplications,
         saveDraft,
         publishContent,
         uploadImage,

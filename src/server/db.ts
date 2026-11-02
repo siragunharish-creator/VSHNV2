@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { initialWebsiteContent } from './defaultData.ts';
-import { WebsiteContent, ContactSubmission, ActivityLog, SiteSettings, BusinessContact } from '../shared/types.ts';
+import { WebsiteContent, ContactSubmission, ActivityLog, SiteSettings, BusinessContact, JobOpening, JobApplication } from '../shared/types.ts';
 import { normalizePhoneNumber, formatDisplayPhone, getPrimaryContact } from '../lib/contactUtils.ts';
 import {
   loadContentFromSupabase,
@@ -19,6 +19,7 @@ const TMP_DATA_DIR = path.resolve('/tmp', 'vshn-data');
 const CONTENT_FILE = path.join(DATA_DIR, 'content.json');
 const DRAFT_FILE = path.join(DATA_DIR, 'draft.json');
 const ENQUIRIES_FILE = path.join(DATA_DIR, 'enquiries.json');
+const APPLICATIONS_FILE = path.join(DATA_DIR, 'career-applications.json');
 const ACTIVITY_FILE = path.join(DATA_DIR, 'activity.json');
 const AUTH_FILE = path.join(DATA_DIR, 'auth.json');
 const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
@@ -198,6 +199,7 @@ export class DatabaseService {
   private content: WebsiteContent;
   private draftContent: WebsiteContent | null = null;
   private enquiries: ContactSubmission[] = [];
+  private applications: JobApplication[] = [];
   private activityLogs: ActivityLog[] = [];
   private authData: StoredAuth;
 
@@ -206,6 +208,7 @@ export class DatabaseService {
     this.content = this.loadContent();
     this.draftContent = this.loadDraft();
     this.enquiries = this.loadEnquiries();
+    this.applications = this.loadApplications();
     this.activityLogs = this.loadActivity();
 
     // Trigger Supabase sync asynchronously
@@ -271,6 +274,7 @@ export class DatabaseService {
             : Array.isArray(pub.settings?.contacts) && pub.settings.contacts.length > 0
             ? pub.settings.contacts
             : (initialWebsiteContent.contacts || []),
+          careers: Array.isArray(pub.careers) ? pub.careers : (initialWebsiteContent.careers || []),
         };
         if (remote.draft) {
           this.draftContent = remote.draft;
@@ -350,6 +354,9 @@ export class DatabaseService {
             : Array.isArray(parsed.settings?.contacts) && parsed.settings.contacts.length > 0
             ? parsed.settings.contacts
             : (initialWebsiteContent.contacts || []),
+          careers: Array.isArray(parsed.careers)
+            ? parsed.careers
+            : (initialWebsiteContent.careers || []),
         };
       } catch (err) {
         console.error('Error reading content file, falling back to defaults', err);
@@ -384,16 +391,47 @@ export class DatabaseService {
     return [
       {
         id: 'enq-sample-1',
-        name: 'K. Venkatesan',
+        name: 'Karthik Subramanian',
         phone: '98401 23456',
-        email: 'venkat.k@gmail.com',
-        plotLocation: 'Kolathur, Chennai',
+        email: 'karthik.sub@gmail.com',
+        plotLocation: 'Mogappair West, Chennai',
         serviceNeeded: 'Complete residential construction',
         estimatedSqFt: 2400,
         preferredPackage: 'Deluxe',
-        message: 'Looking to construct a G+1 independent house on a 30x40 site. Need 2D plan and estimate.',
+        budgetRange: '₹55 - 65 Lakhs',
+        message: 'Looking to start construction of G+1 individual villa by next month. Requesting initial site inspection.',
         status: 'new',
-        createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+        createdAt: new Date().toISOString(),
+      },
+    ];
+  }
+
+  private loadApplications(): JobApplication[] {
+    const raw = safeReadFile(APPLICATIONS_FILE);
+    if (raw) {
+      try {
+        return JSON.parse(raw);
+      } catch (err) {
+        console.error('Error reading job applications', err);
+      }
+    }
+    return [
+      {
+        id: 'app-sample-1',
+        jobId: 'job-1',
+        jobTitle: 'Civil Site Engineer',
+        fullName: 'Venkatesh Raman',
+        mobileNumber: '+919841234567',
+        email: 'venkatesh.civil@example.com',
+        location: 'Porur, Chennai',
+        yearsOfExperience: '3.5',
+        qualification: 'B.E. Civil Engineering',
+        resumeUrl: '',
+        resumeFileName: 'Venkatesh_Civil_Resume.pdf',
+        message: 'Experienced in RCC supervision, quantity takeoff, and client milestone delivery in Chennai projects.',
+        status: 'new',
+        appliedAt: new Date(Date.now() - 86400000).toISOString(),
+        notes: 'Has valid driving license and own two-wheeler for site visits.',
       },
     ];
   }
@@ -539,6 +577,16 @@ export class DatabaseService {
       videoGallery: (this.content.videoGallery || []).filter(v => v.isPublished).sort((a, b) => a.displayOrder - b.displayOrder),
       contacts: this.content.contacts || initialWebsiteContent.contacts,
       faqs: this.content.faqs,
+      careers: (this.content.careers || []).filter(
+        (j) =>
+          j.isActive === true ||
+          (j.isActive !== false &&
+            (j.isActive as any) !== 'false' &&
+            (j.isActive as any) !== '0' &&
+            (j.isActive as any) !== 0 &&
+            (j.isActive as any) !== 'closed' &&
+            (j.isActive as any) !== 'inactive')
+      ),
     };
   }
 
@@ -568,6 +616,9 @@ export class DatabaseService {
         } else if (Array.isArray(pub.settings?.contacts) && pub.settings.contacts.length > 0) {
           this.content.contacts = pub.settings.contacts;
         }
+        if (Array.isArray(pub.careers)) {
+          this.content.careers = pub.careers;
+        }
       }
     } catch (err: any) {
       console.warn('[DB] Supabase quick check notice:', err?.message);
@@ -580,12 +631,14 @@ export class DatabaseService {
     published: WebsiteContent;
     draft: WebsiteContent | null;
     enquiries: ContactSubmission[];
+    applications: JobApplication[];
     activities: ActivityLog[];
   } {
     return {
       published: this.content,
       draft: this.draftContent,
       enquiries: this.enquiries,
+      applications: this.applications,
       activities: this.activityLogs,
     };
   }
@@ -673,6 +726,9 @@ export class DatabaseService {
         : Array.isArray(content.settings?.contacts) && content.settings.contacts.length > 0
         ? content.settings.contacts
         : (this.content.contacts || initialWebsiteContent.contacts || []),
+      careers: Array.isArray(content.careers)
+        ? content.careers
+        : (this.content.careers || initialWebsiteContent.careers || []),
     };
 
     if (isPublish) {
@@ -1095,6 +1151,125 @@ export class DatabaseService {
     this.enquiries = this.enquiries.filter((e) => e.id !== id);
     safeWriteFile(ENQUIRIES_FILE, JSON.stringify(this.enquiries, null, 2));
     return this.enquiries.length < before;
+  }
+
+  // Careers & Job Openings
+  public getCareers(onlyActive = true): JobOpening[] {
+    const all = Array.isArray(this.content.careers) ? this.content.careers : (initialWebsiteContent.careers || []);
+    return all
+      .filter((job) => {
+        if (!onlyActive) return true;
+        return (
+          job.isActive === true ||
+          (job.isActive !== false &&
+            (job.isActive as any) !== 'false' &&
+            (job.isActive as any) !== 0 &&
+            (job.isActive as any) !== '0' &&
+            (job.isActive as any) !== 'closed' &&
+            (job.isActive as any) !== 'inactive')
+        );
+      })
+      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+  }
+
+  public async updateCareers(careers: JobOpening[], user: string): Promise<WebsiteContent> {
+    const sanitized: JobOpening[] = careers.map((job, idx) => {
+      const isJobActive =
+        job.isActive === true ||
+        (job.isActive !== false &&
+          (job.isActive as any) !== 'false' &&
+          (job.isActive as any) !== 0 &&
+          (job.isActive as any) !== '0' &&
+          (job.isActive as any) !== 'closed' &&
+          (job.isActive as any) !== 'inactive');
+
+      return {
+        ...job,
+        id: job.id || `job-${Date.now()}-${idx}`,
+        title: job.title.trim(),
+        location: job.location.trim() || 'Chennai',
+        experience: job.experience.trim() || '1 - 3 Years',
+        qualification: job.qualification.trim() || 'Civil Engineering Degree / Diploma',
+        salary: job.salary ? job.salary.trim() : undefined,
+        jobType: job.jobType || 'Full-time',
+        description: job.description.trim(),
+        skills: Array.isArray(job.skills) ? job.skills.map((s) => s.trim()).filter(Boolean) : [],
+        openingsCount: typeof job.openingsCount === 'number' && job.openingsCount > 0 ? job.openingsCount : 1,
+        isActive: isJobActive,
+        displayOrder: typeof job.displayOrder === 'number' ? job.displayOrder : idx + 1,
+        createdAt: job.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    });
+
+    this.content = {
+      ...this.content,
+      careers: sanitized,
+    };
+
+    if (this.draftContent) {
+      this.draftContent = {
+        ...this.draftContent,
+        careers: sanitized,
+      };
+      safeWriteFile(DRAFT_FILE, JSON.stringify(this.draftContent, null, 2));
+    }
+
+    this.saveContentDirect(this.content);
+    this.logActivity(
+      'Careers Updated',
+      `Updated ${sanitized.length} job openings (${sanitized.filter((j) => j.isActive).length} active)`,
+      user
+    );
+
+    try {
+      await upsertContentToSupabase(this.content, true, user);
+    } catch (err: any) {
+      console.warn('[DB] Supabase careers sync notice:', err?.message);
+    }
+
+    return this.content;
+  }
+
+  // Job Applications
+  public async addApplication(data: Omit<JobApplication, 'id' | 'appliedAt' | 'status'>): Promise<JobApplication> {
+    const newApp: JobApplication = {
+      id: 'app-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      ...data,
+      status: 'new',
+      appliedAt: new Date().toISOString(),
+    };
+    this.applications = [newApp, ...this.applications];
+    safeWriteFile(APPLICATIONS_FILE, JSON.stringify(this.applications, null, 2));
+    this.logActivity(
+      'New Job Application',
+      `Application for ${data.jobTitle} from ${data.fullName} (${data.mobileNumber})`,
+      'candidate'
+    );
+    return newApp;
+  }
+
+  public getApplications(jobId?: string): JobApplication[] {
+    if (jobId) {
+      return this.applications.filter((a) => a.jobId === jobId);
+    }
+    return this.applications;
+  }
+
+  public updateApplicationStatus(id: string, status: JobApplication['status'], notes?: string): boolean {
+    const item = this.applications.find((a) => a.id === id);
+    if (!item) return false;
+    item.status = status;
+    if (notes !== undefined) item.notes = notes;
+    safeWriteFile(APPLICATIONS_FILE, JSON.stringify(this.applications, null, 2));
+    return true;
+  }
+
+  public deleteApplication(id: string): boolean {
+    const before = this.applications.length;
+    this.applications = this.applications.filter((a) => a.id !== id);
+    safeWriteFile(APPLICATIONS_FILE, JSON.stringify(this.applications, null, 2));
+    return this.applications.length < before;
   }
 
   // Reset to initial authentic demo data

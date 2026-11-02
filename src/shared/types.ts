@@ -108,13 +108,50 @@ export interface VideoGalleryItem {
   id: string;
   title: string;
   url: string;
-  platform: 'youtube' | 'instagram';
+  platform: 'youtube' | 'video' | 'direct' | 'instagram' | string;
+  orientation?: 'landscape' | 'portrait'; // Landscape (16:9) or Portrait (9:16 Shorts/Reels)
+  aspectRatio?: 'landscape' | 'portrait' | '16:9' | '9:16';
   description?: string;
   thumbnailUrl?: string;
   isPublished: boolean;
   displayOrder: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface JobOpening {
+  id: string;
+  title: string;
+  location: string;
+  experience: string;
+  qualification: string;
+  salary?: string;
+  jobType: 'Full-time' | 'Part-time' | 'Contract' | 'Internship' | string;
+  description: string;
+  skills: string[];
+  openingsCount: number;
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JobApplication {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  fullName: string;
+  mobileNumber: string;
+  email: string;
+  location: string;
+  yearsOfExperience: string;
+  qualification: string;
+  resumeUrl?: string;
+  resumeFileName?: string;
+  message?: string;
+  status: 'new' | 'reviewed' | 'shortlisted' | 'contacted' | 'rejected';
+  appliedAt: string;
+  notes?: string;
 }
 
 export interface Project {
@@ -231,6 +268,8 @@ export interface WebsiteContent {
   mediaLibrary: MediaItem[];
   videoGallery?: VideoGalleryItem[];
   contacts?: BusinessContact[];
+  careers?: JobOpening[];
+  careerApplications?: JobApplication[];
   faqs: Array<{
     id: string;
     question: string;

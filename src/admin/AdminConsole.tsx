@@ -43,6 +43,7 @@ import {
   Copy,
   Coins,
   Film,
+  Briefcase,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useContent } from '../context/ContentContext.tsx';
@@ -55,6 +56,7 @@ import { sanitizeFrontendSupabaseUrl, sanitizeFrontendSupabaseKey } from '../lib
 import { EstimatedInvestmentManager } from './EstimatedInvestmentManager.tsx';
 import { VideoGalleryManager } from './VideoGalleryManager.tsx';
 import { ContactManager } from './ContactManager.tsx';
+import { CareersManager } from './CareersManager.tsx';
 import { getPrimaryContact } from '../lib/contactUtils.ts';
 
 interface AdminConsoleProps {
@@ -72,6 +74,7 @@ type AdminTab =
   | 'media'
   | 'featuredMedia'
   | 'videoGallery'
+  | 'careers'
   | 'about'
   | 'contact'
   | 'testimonials'
@@ -86,6 +89,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
     content,
     draftContent,
     enquiries,
+    applications = [],
     activities,
     saveDraft,
     publishContent,
@@ -382,6 +386,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
     { id: 'packages', label: 'Construction Packages', icon: <BadgePercent className="w-4 h-4" /> },
     { id: 'investment', label: 'Estimated Investment', icon: <Coins className="w-4 h-4 text-amber-500" /> },
     { id: 'videoGallery', label: 'Video Gallery Management', icon: <Film className="w-4 h-4 text-red-500" /> },
+    {
+      id: 'careers',
+      label: `Careers & Jobs ${applications.filter((a) => a.status === 'new').length > 0 ? `(${applications.filter((a) => a.status === 'new').length} new)` : ''}`,
+      icon: <Briefcase className="w-4 h-4 text-emerald-500" />,
+    },
     { id: 'media', label: 'Media Library & Uploads', icon: <ImageIcon className="w-4 h-4" /> },
     { id: 'featuredMedia', label: 'Featured Walkthrough Links', icon: <Play className="w-4 h-4" /> },
     { id: 'about', label: 'About Us & Values', icon: <BookOpen className="w-4 h-4" /> },
@@ -2315,6 +2324,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onClose, onPreviewSi
                 setEditableData={setEditableData}
                 showToast={showToast}
               />
+            )}
+
+            {/* ================= CAREERS & JOB OPENINGS MANAGEMENT ================= */}
+            {activeTab === 'careers' && (
+              <CareersManager showToast={showToast} />
             )}
 
             {/* ================= 7. ABOUT US & VALUES ================= */}

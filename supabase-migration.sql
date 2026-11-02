@@ -172,3 +172,147 @@ ON CONFLICT (id) DO UPDATE SET
     is_active = EXCLUDED.is_active,
     updated_at = NOW();
 
+-- 6. CAREERS & JOB OPENINGS MANAGEMENT TABLE
+CREATE TABLE IF NOT EXISTS public.job_openings (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    location TEXT NOT NULL,
+    experience TEXT NOT NULL,
+    qualification TEXT NOT NULL,
+    salary TEXT,
+    job_type TEXT DEFAULT 'Full-Time',
+    description TEXT NOT NULL,
+    skills JSONB DEFAULT '[]'::jsonb,
+    openings_count INT DEFAULT 1,
+    is_active BOOLEAN DEFAULT TRUE,
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.job_openings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view active job openings" ON public.job_openings;
+DROP POLICY IF EXISTS "Allow job openings management" ON public.job_openings;
+
+-- Public can view active jobs
+CREATE POLICY "Public can view active job openings"
+    ON public.job_openings
+    FOR SELECT
+    TO anon, authenticated
+    USING (is_active = true);
+
+-- Admin and backend can manage all jobs
+CREATE POLICY "Allow job openings management"
+    ON public.job_openings
+    FOR ALL
+    TO anon, authenticated, service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- 7. JOB APPLICATIONS TABLE
+CREATE TABLE IF NOT EXISTS public.job_applications (
+    id TEXT PRIMARY KEY,
+    job_id TEXT NOT NULL,
+    job_title TEXT NOT NULL,
+    full_name TEXT NOT NULL,
+    mobile_number TEXT NOT NULL,
+    email TEXT NOT NULL,
+    location TEXT NOT NULL,
+    years_of_experience TEXT NOT NULL,
+    qualification TEXT NOT NULL,
+    resume_url TEXT,
+    resume_file_name TEXT,
+    message TEXT,
+    status TEXT DEFAULT 'new',
+    notes TEXT,
+    applied_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.job_applications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public job application submission" ON public.job_applications;
+DROP POLICY IF EXISTS "Allow admin job applications management" ON public.job_applications;
+
+-- Public applicants can submit applications
+CREATE POLICY "Allow public job application submission"
+    ON public.job_applications
+    FOR INSERT
+    TO anon, authenticated
+    WITH CHECK (true);
+
+-- Admin can manage and view applications
+CREATE POLICY "Allow admin job applications management"
+    ON public.job_applications
+    FOR ALL
+    TO anon, authenticated, service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- 8. RESUMES STORAGE BUCKET
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('vshn-resumes', 'vshn-resumes', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "Allow resume upload" ON storage.objects;
+DROP POLICY IF EXISTS "Allow resume viewing" ON storage.objects;
+
+CREATE POLICY "Allow resume upload"
+    ON storage.objects FOR INSERT
+    TO anon, authenticated
+    WITH CHECK (bucket_id = 'vshn-resumes');
+
+CREATE POLICY "Allow resume viewing"
+    ON storage.objects FOR SELECT
+    TO anon, authenticated
+    USING (bucket_id = 'vshn-resumes');
+
+-- Seed initial Chennai job openings
+INSERT INTO public.job_openings (
+    id, title, location, experience, qualification, salary, job_type, description, skills, openings_count, is_active, display_order
+) VALUES
+(
+    'job-1',
+    'Civil Site Engineer (Residential Projects)',
+    'Chennai (Tondiarpet, Kolathur, Madhavaram & Suburbs)',
+    '2 - 5 Years in Residential Building Construction',
+    'B.E. Civil Engineering / Diploma in Civil',
+    '₹30,000 - ₹50,000 / month (Commensurate with experience)',
+    'Full-Time',
+    'Lead on-site structural execution, RCC column casting, brickwork verification, concrete pour monitoring, material quality inspection, and daily labor coordination for turnkey independent houses and villas across Chennai.',
+    '["Site Execution", "RCC Quality Inspection", "Bar Bending Schedules", "Material Estimation", "AutoCAD", "Vendor Coordination"]'::jsonb,
+    2,
+    true,
+    1
+),
+(
+    'job-2',
+    'Architectural Designer & 3D Visualizer',
+    'Chennai (Office & Site Visits)',
+    '1 - 4 Years in Residential Architecture',
+    'B.Arch / Diploma in Architectural Assistantship / CAD Certified',
+    '₹28,000 - ₹45,000 / month',
+    'Full-Time',
+    'Develop 2D Vaastu-compliant architectural floor plans, photorealistic 3D exterior elevations, walkthrough animations, and structural approval drawings for custom dream home clients.',
+    '["AutoCAD", "3ds Max / SketchUp", "V-Ray / Lumion", "Vaastu Shastra Planning", "Photoshop", "Working Drawings"]'::jsonb,
+    1,
+    true,
+    2
+),
+(
+    'job-3',
+    'Site Supervisor & Quality Inspector',
+    'Chennai Sites',
+    '3 - 7 Years in Civil Site Supervision',
+    'Diploma / ITI Civil / High School with rich site experience',
+    '₹25,000 - ₹38,000 / month',
+    'Full-Time',
+    'Supervise daily masonry, curing periods, steel reinforcement checks, plastering smoothness, electrical and plumbing conduits, and milestone handover inspections on residential job sites.',
+    '["Site Supervision", "Quality Control", "Masonry & Curing", "Daily Progress Reporting", "Labour Management"]'::jsonb,
+    2,
+    true,
+    3
+)
+ON CONFLICT (id) DO NOTHING;
+
+

@@ -9,12 +9,14 @@ import { getCallUrl } from '../lib/contactUtils.ts';
 interface NavbarProps {
   onOpenAdminLogin: () => void;
   onOpenAdminConsole: () => void;
+  onOpenCareers?: () => void;
   activeSection?: string;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   onOpenAdminLogin,
   onOpenAdminConsole,
+  onOpenCareers,
   activeSection = 'home',
 }) => {
   const { theme, toggleTheme } = useTheme();
@@ -40,10 +42,19 @@ export const Navbar: React.FC<NavbarProps> = ({
     { label: 'Packages', href: '#packages' },
     { label: 'Gallery', href: '#gallery' },
     { label: 'Videos', href: '#videos' },
+    { label: 'Careers', href: '#careers' },
     { label: 'Contact', href: '#contact' },
   ];
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href === '#careers') {
+      e.preventDefault();
+      setMobileMenuOpen(false);
+      if (onOpenCareers) {
+        onOpenCareers();
+      }
+      return;
+    }
     if (href.startsWith('#')) {
       const targetId = href.slice(1);
       const targetEl =

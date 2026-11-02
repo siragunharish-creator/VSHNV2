@@ -1,5 +1,56 @@
-import { WebsiteContent } from '../shared/types.ts';
+import { WebsiteContent, JobOpening } from '../shared/types.ts';
 import { INITIAL_BUSINESS_CONTACTS } from '../lib/contactUtils.ts';
+
+export const initialJobOpenings: JobOpening[] = [
+  {
+    id: 'job-1',
+    title: 'Civil Site Engineer',
+    location: 'Chennai (Ambattur / Porur)',
+    experience: '2 - 5 Years',
+    qualification: 'B.E. Civil / Diploma in Civil Engineering',
+    salary: '₹3,60,000 - ₹5,40,000 P.A.',
+    jobType: 'Full-time',
+    description: 'Responsible for end-to-end site execution of residential building projects, milestone management, RCC quality checks, material tracking, and client communication.',
+    skills: ['Site Execution', 'AutoCAD', 'Bar Bending Schedule', 'RCC Frame Inspection', 'Quantity Estimation', 'Vendor Management'],
+    openingsCount: 2,
+    isActive: true,
+    displayOrder: 1,
+    createdAt: '2025-01-10T00:00:00.000Z',
+    updatedAt: '2025-01-10T00:00:00.000Z',
+  },
+  {
+    id: 'job-2',
+    title: 'Architectural Designer & 3D Visualizer',
+    location: 'Chennai (Head Office - Tondiarpet)',
+    experience: '3 - 6 Years',
+    qualification: 'B.Arch / Diploma in Architecture / Interior Design',
+    salary: '₹4,50,000 - ₹7,00,000 P.A.',
+    jobType: 'Full-time',
+    description: 'Create custom 2D municipal-compliant floor layouts, structural elevation concepts, photorealistic 3D interior & exterior renders, and virtual client walkthroughs.',
+    skills: ['Revit', 'AutoCAD 2D', '3ds Max / V-Ray', 'SketchUp', 'Lumion', 'Tamil Nadu Building Rules'],
+    openingsCount: 1,
+    isActive: true,
+    displayOrder: 2,
+    createdAt: '2025-01-12T00:00:00.000Z',
+    updatedAt: '2025-01-12T00:00:00.000Z',
+  },
+  {
+    id: 'job-3',
+    title: 'Site Supervisor & Quality Inspector',
+    location: 'Chennai (Multiple Sites)',
+    experience: '1 - 4 Years',
+    qualification: 'Diploma in Civil Engineering / DCE / ITI',
+    salary: '₹2,40,000 - ₹3,60,000 P.A.',
+    jobType: 'Full-time',
+    description: 'Supervise daily construction activities on site, monitor masonry and plastering quality, ensure safety compliance, and report daily progress to the project manager.',
+    skills: ['Day-to-day Supervision', 'Masonry Inspection', 'Plumbing & Electrical Check', 'Safety Standards', 'Labour Coordination'],
+    openingsCount: 2,
+    isActive: true,
+    displayOrder: 3,
+    createdAt: '2025-01-15T00:00:00.000Z',
+    updatedAt: '2025-01-15T00:00:00.000Z',
+  },
+];
 
 export const initialWebsiteContent: WebsiteContent = {
   settings: {
@@ -606,8 +657,8 @@ export const initialWebsiteContent: WebsiteContent = {
     {
       id: 'vid-2',
       title: 'Structural Concrete Pour & Quality Testing',
-      url: 'https://www.instagram.com/reel/DF2N8c5z0fL/',
-      platform: 'instagram',
+      url: 'https://www.youtube.com/watch?v=ysz5S6PUM-U',
+      platform: 'youtube',
       description: 'M25 grade ready-mix concrete slab casting with ultrasonic pulse velocity quality assurance.',
       thumbnailUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18615f8?q=80&w=1200&auto=format&fit=crop',
       isPublished: true,
@@ -630,8 +681,8 @@ export const initialWebsiteContent: WebsiteContent = {
     {
       id: 'vid-4',
       title: 'Teak Wood Carving & Main Door Fitting',
-      url: 'https://www.instagram.com/p/DF2N8c5z0fL/',
-      platform: 'instagram',
+      url: 'https://www.youtube.com/watch?v=kJQP7kiw5Fk',
+      platform: 'youtube',
       description: 'Master carpenters finishing 100% solid Ghana teak entrance door with brass fittings.',
       thumbnailUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1200&auto=format&fit=crop',
       isPublished: true,
@@ -642,7 +693,7 @@ export const initialWebsiteContent: WebsiteContent = {
     {
       id: 'vid-5',
       title: 'Modern Modular Kitchen & Granite Countertop Installation',
-      url: 'https://www.youtube.com/watch?v=kJQP7kiw5Fk',
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       platform: 'youtube',
       description: 'Black pearl granite worktop with soft-close tandem drawers and stainless steel sink.',
       thumbnailUrl: 'https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?q=80&w=1200&auto=format&fit=crop',
@@ -654,8 +705,8 @@ export const initialWebsiteContent: WebsiteContent = {
     {
       id: 'vid-6',
       title: 'Architectural Elevation Lighting Reveal',
-      url: 'https://www.instagram.com/reel/DF2N8c5z0fL/',
-      platform: 'instagram',
+      url: 'https://www.youtube.com/watch?v=7wtfhZwyrcc',
+      platform: 'youtube',
       description: 'Evening facade illumination with waterproof warm LED wall washers and louvers.',
       thumbnailUrl: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=1200&auto=format&fit=crop',
       isPublished: true,
@@ -665,6 +716,7 @@ export const initialWebsiteContent: WebsiteContent = {
     },
   ],
   contacts: INITIAL_BUSINESS_CONTACTS,
+  careers: initialJobOpenings,
   faqs: [
     {
       id: 'faq-1',

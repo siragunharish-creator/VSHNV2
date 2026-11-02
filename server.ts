@@ -73,6 +73,46 @@ const upload = multer({
   },
 });
 
+// Resume storage configuration (PDF, DOC, DOCX up to 10MB)
+const resumesDir = path.resolve(uploadsDir, 'resumes');
+if (!fs.existsSync(resumesDir)) {
+  fs.mkdirSync(resumesDir, { recursive: true });
+}
+
+const resumeStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, resumesDir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.pdf';
+    const safeName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_]/g, '-').slice(0, 30);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e4);
+    cb(null, `resume-${safeName}-${uniqueSuffix}${ext}`);
+  },
+});
+
+const uploadResume = multer({
+  storage: resumeStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const mime = file.mimetype.toLowerCase();
+    if (
+      ext === '.pdf' ||
+      ext === '.doc' ||
+      ext === '.docx' ||
+      mime.includes('pdf') ||
+      mime.includes('msword') ||
+      mime.includes('officedocument') ||
+      mime.includes('octet-stream')
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only document files (PDF, DOC, DOCX) are accepted for resumes.'));
+    }
+  },
+});
+
 // Auth Middleware
 function requireAdminAuth(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
@@ -582,6 +622,166 @@ app.post('/api/admin/reset-demo', requireAdminAuth, (_req: Request, res: Respons
     res.json({ success: true, message: 'All website content reset to initial VSHN Builders defaults.', content: fresh });
   } catch (err: any) {
     res.status(500).json({ error: 'Reset failed: ' + err.message });
+  }
+});
+
+// ======================== CAREERS & APPLICATIONS API ========================
+
+// Public: Get all active job openings
+app.get('/api/careers', (_req: Request, res: Response) => {
+  try {
+    const activeJobs = db.getCareers(true);
+    res.json({ success: true, careers: activeJobs });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to load careers: ' + err.message });
+  }
+});
+
+// Public: Submit job application (supports multipart/form-data with resume file or JSON body)
+app.post('/api/careers/apply', (req: Request, res: Response) => {
+  uploadResume.single('resume')(req, res, async (err: any) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        res.status(400).json({ error: 'Resume file exceeds 10MB limit. Please upload a smaller document.' });
+        return;
+      }
+      res.status(400).json({ error: err.message || 'Resume upload failed' });
+      return;
+    }
+
+    try {
+      const {
+        jobId,
+        jobTitle,
+        fullName,
+        mobileNumber,
+        email,
+        location,
+        yearsOfExperience,
+        qualification,
+        message,
+      } = req.body;
+
+      if (!fullName || !mobileNumber || !email) {
+        res.status(400).json({ error: 'Full name, mobile number, and email are required.' });
+        return;
+      }
+
+      let resumeUrl = req.body.resumeUrl || '';
+      let resumeFileName = req.body.resumeFileName || '';
+
+      if (req.file) {
+        resumeUrl = `/uploads/resumes/${req.file.filename}`;
+        resumeFileName = req.file.originalname;
+
+        // Try syncing to Supabase Storage bucket 'vshn-media'
+        try {
+          const buffer = fs.readFileSync(req.file.path);
+          const sbRes = await uploadImageToSupabase(`resumes/${req.file.filename}`, buffer, req.file.mimetype || 'application/pdf');
+          if (sbRes.success && sbRes.url) {
+            resumeUrl = sbRes.url;
+          }
+        } catch (sbErr) {
+          console.warn('[Server] Supabase resume sync fallback to local path:', sbErr);
+        }
+      }
+
+      const application = await db.addApplication({
+        jobId: jobId || 'general',
+        jobTitle: jobTitle || 'General Application',
+        fullName: String(fullName).trim(),
+        mobileNumber: String(mobileNumber).trim(),
+        email: String(email).trim().toLowerCase(),
+        location: String(location || 'Chennai').trim(),
+        yearsOfExperience: String(yearsOfExperience || '0').trim(),
+        qualification: String(qualification || '').trim(),
+        resumeUrl,
+        resumeFileName,
+        message: String(message || '').trim(),
+      });
+
+      res.json({
+        success: true,
+        message: 'Your application has been received! The VSHN Builders team will review your profile and reach out.',
+        application,
+      });
+    } catch (applyErr: any) {
+      res.status(500).json({ error: 'Application submission failed: ' + applyErr.message });
+    }
+  });
+});
+
+// Admin: Get all job openings (active + closed)
+app.get('/api/admin/careers', requireAdminAuth, (_req: Request, res: Response) => {
+  try {
+    const allJobs = db.getCareers(false);
+    res.json({ success: true, careers: allJobs });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to fetch careers: ' + err.message });
+  }
+});
+
+// Admin: Update job openings (add, edit, reorder, enable/disable)
+app.post('/api/admin/careers', requireAdminAuth, async (req: Request, res: Response) => {
+  try {
+    const { careers } = req.body;
+    if (!Array.isArray(careers)) {
+      res.status(400).json({ error: 'Careers must be an array of job openings.' });
+      return;
+    }
+    const updated = await db.updateCareers(careers, 'harish');
+    const publicContent = db.getPublicContent();
+    broadcastContentUpdate(publicContent);
+    res.json({
+      success: true,
+      careers: updated.careers,
+      message: 'Job openings saved and published live to website!',
+      content: publicContent,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to update careers: ' + err.message });
+  }
+});
+
+// Admin: Get job applications (optionally filtered by jobId)
+app.get('/api/admin/applications', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const jobId = req.query.jobId as string | undefined;
+    const apps = db.getApplications(jobId);
+    res.json({ success: true, applications: apps });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to fetch applications: ' + err.message });
+  }
+});
+
+// Admin: Update job application status or notes
+app.patch('/api/admin/applications/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status, notes } = req.body;
+    const ok = db.updateApplicationStatus(id, status, notes);
+    if (ok) {
+      res.json({ success: true, message: 'Application updated successfully.' });
+    } else {
+      res.status(404).json({ error: 'Application not found.' });
+    }
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to update application: ' + err.message });
+  }
+});
+
+// Admin: Delete job application
+app.delete('/api/admin/applications/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const ok = db.deleteApplication(id);
+    if (ok) {
+      res.json({ success: true, message: 'Application deleted.' });
+    } else {
+      res.status(404).json({ error: 'Application not found.' });
+    }
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to delete application: ' + err.message });
   }
 });
 

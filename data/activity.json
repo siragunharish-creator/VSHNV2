@@ -1,5 +1,40 @@
 [
   {
+    "id": "act-1793621482701-952",
+    "action": "Careers Updated",
+    "details": "Updated 3 job openings (3 active)",
+    "timestamp": "2026-11-02T12:11:22.701Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1793621481674-889",
+    "action": "Careers Updated",
+    "details": "Updated 3 job openings (0 active)",
+    "timestamp": "2026-11-02T12:11:21.674Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1793621480973-781",
+    "action": "Careers Updated",
+    "details": "Updated 3 job openings (2 active)",
+    "timestamp": "2026-11-02T12:11:20.974Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1793621480957-71",
+    "action": "Admin Login",
+    "details": "Admin harish signed in successfully",
+    "timestamp": "2026-11-02T12:11:20.957Z",
+    "user": "harish"
+  },
+  {
+    "id": "act-1793619911553-559",
+    "action": "New Job Application",
+    "details": "Application for General Application from Karthik Raja (+919840123456)",
+    "timestamp": "2026-11-02T11:45:11.553Z",
+    "user": "candidate"
+  },
+  {
     "id": "act-1792125494287-824",
     "action": "Admin Login",
     "details": "Admin harish signed in successfully",
